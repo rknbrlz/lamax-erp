@@ -1,0 +1,19 @@
+# Build
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Packages
+packages/
+
+# Logs
+*.log
+
+# Secrets
+web.config
+web.Debug.config
+web.Release.config
