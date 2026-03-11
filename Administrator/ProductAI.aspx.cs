@@ -183,7 +183,7 @@ namespace Feniks.Administrator
 
                 SetSeoVisual(saved.SeoScore);
 
-                SeoBreakdown radar = CalculateSeoBreakdown(ReadForm(), marketplace);
+                SeoBreakdown radar = CalculateSeoBreakdown(ReadForm(), marketplace, null);
                 SetRadarVisual(radar.TitleScore, radar.BulletsScore, radar.KeywordsScore, radar.TagsScore);
 
                 litVisionSummary.Text = !string.IsNullOrWhiteSpace(saved.VisionSummary)
@@ -279,15 +279,15 @@ namespace Feniks.Administrator
                     return;
                 }
 
-                NormalizeListingByMarketplace(listing, marketplace);
-                listing.SeoScore = CalculateSeoScore(listing, marketplace);
+                NormalizeListingByMarketplace(listing, marketplace, strategy);
+                listing.SeoScore = CalculateSeoScore(listing, marketplace, strategy);
 
                 FillForm(listing);
                 litVisionSummary.Text = BuildVisionSummaryHtml(vision, images.Count, loadedFromCache, forceRefresh);
                 litStrategySummary.Text = BuildStrategySummaryHtml(strategy);
                 SetSeoVisual(listing.SeoScore);
 
-                SeoBreakdown radar = CalculateSeoBreakdown(listing, marketplace);
+                SeoBreakdown radar = CalculateSeoBreakdown(listing, marketplace, strategy);
                 SetRadarVisual(radar.TitleScore, radar.BulletsScore, radar.KeywordsScore, radar.TagsScore);
 
                 if (forceRefresh)
@@ -381,8 +381,8 @@ namespace Feniks.Administrator
                     if (listing == null)
                         throw new Exception(mp + " için listing üretilemedi.");
 
-                    NormalizeListingByMarketplace(listing, mp);
-                    listing.SeoScore = CalculateSeoScore(listing, mp);
+                    NormalizeListingByMarketplace(listing, mp, strategy);
+                    listing.SeoScore = CalculateSeoScore(listing, mp, strategy);
 
                     allResults.Add(new MultiMarketplaceResult
                     {
@@ -405,7 +405,7 @@ namespace Feniks.Administrator
                     SetSeoVisual(selected.Listing.SeoScore);
                     litStrategySummary.Text = BuildStrategySummaryHtml(selected.Strategy);
 
-                    SeoBreakdown radar = CalculateSeoBreakdown(selected.Listing, selected.Marketplace);
+                    SeoBreakdown radar = CalculateSeoBreakdown(selected.Listing, selected.Marketplace, selected.Strategy);
                     SetRadarVisual(radar.TitleScore, radar.BulletsScore, radar.KeywordsScore, radar.TagsScore);
                 }
 
@@ -810,6 +810,9 @@ Return exactly this JSON shape:
             string marketRules = GetMarketplaceRules(marketplace);
             string visionJson = _json.Serialize(vision);
 
+            List<string> seeds = GetMarketplaceSeedKeywords(marketplace, vision, meta);
+            string seedList = string.Join(", ", seeds);
+
             return $@"
 You are a senior marketplace SEO strategist for handmade, jewelry, fashion accessory and gift listings.
 
@@ -829,6 +832,8 @@ Important rules:
 - Favor multi-word phrases with buyer intent.
 - Include gift intent only if it naturally fits the product.
 - Keep outputs practical and commercially usable.
+- Use the seed keywords below to simulate real buyer search behavior and marketplace autosuggest logic.
+- Prefer commercially relevant product phrases over vague descriptor phrases.
 
 {langInstruction}
 
@@ -843,6 +848,9 @@ Stone: {meta.Stone}
 Color: {meta.Color}
 Gender: {meta.Gender}
 
+Seed keywords derived from product vision and metadata:
+{seedList}
+
 Image analysis JSON:
 {visionJson}
 
@@ -856,7 +864,8 @@ Return ONLY valid JSON in this exact shape:
   ""forbidden_claims"": ["""", """", """"],
   ""tone"": """",
   ""buyer_intent"": """",
-  ""differentiation_angle"": """"
+  ""differentiation_angle"": """",
+  ""seed_keywords_used"": ["""", """", """", """", """", """"]
 }}";
         }
 
@@ -945,6 +954,107 @@ Return exactly this JSON shape:
 }}";
         }
 
+        private List<string> GetMarketplaceSeedKeywords(string marketplace, VisionResult vision, ProductMeta meta)
+        {
+            var seeds = new List<string>();
+
+            AddSeed(seeds, meta.ProductName);
+            AddSeed(seeds, meta.Category);
+            AddSeed(seeds, meta.Material);
+            AddSeed(seeds, meta.Stone);
+            AddSeed(seeds, meta.Color);
+            AddSeed(seeds, vision.product_type);
+            AddSeed(seeds, vision.target_audience);
+
+            if (vision.style_keywords != null)
+            {
+                foreach (string s in vision.style_keywords)
+                    AddSeed(seeds, s);
+            }
+
+            if (vision.visible_colors != null)
+            {
+                foreach (string s in vision.visible_colors)
+                    AddSeed(seeds, s);
+            }
+
+            if (vision.visible_materials != null)
+            {
+                foreach (string s in vision.visible_materials)
+                    AddSeed(seeds, s);
+            }
+
+            string combined = " " +
+                              (meta.ProductName ?? "") + " " +
+                              (meta.Category ?? "") + " " +
+                              (vision.product_type ?? "") + " " +
+                              string.Join(" ", vision.style_keywords ?? new List<string>());
+
+            string lc = combined.ToLowerInvariant();
+
+            if (lc.Contains("ring"))
+            {
+                AddSeed(seeds, "ring");
+                AddSeed(seeds, "statement ring");
+                AddSeed(seeds, "gift for women");
+            }
+
+            if (lc.Contains("panther"))
+            {
+                AddSeed(seeds, "panther ring");
+                AddSeed(seeds, "panther jewelry");
+                AddSeed(seeds, "big cat ring");
+            }
+
+            if (lc.Contains("jaguar"))
+            {
+                AddSeed(seeds, "jaguar ring");
+                AddSeed(seeds, "animal ring");
+            }
+
+            if (lc.Contains("leopard"))
+            {
+                AddSeed(seeds, "leopard ring");
+                AddSeed(seeds, "animal jewelry");
+            }
+
+            if (lc.Contains("cat"))
+            {
+                AddSeed(seeds, "cat ring");
+            }
+
+            if (lc.Contains("boho"))
+            {
+                AddSeed(seeds, "boho ring");
+            }
+
+            if ((marketplace ?? "").Trim().Equals("Etsy", StringComparison.OrdinalIgnoreCase))
+            {
+                AddSeed(seeds, "giftable jewelry");
+                AddSeed(seeds, "animal lover gift");
+            }
+
+            return seeds
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(CleanText)
+                .Where(x => x.Length >= 2)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(18)
+                .ToList();
+        }
+
+        private void AddSeed(List<string> seeds, string value)
+        {
+            if (seeds == null || string.IsNullOrWhiteSpace(value))
+                return;
+
+            string cleaned = CleanText(value);
+            if (string.IsNullOrWhiteSpace(cleaned))
+                return;
+
+            seeds.Add(cleaned);
+        }
+
         private string GetLanguageInstruction(string language)
         {
             switch ((language ?? "").Trim().ToLowerInvariant())
@@ -1005,17 +1115,32 @@ Marketplace rules for Amazon:
                 case "etsy":
                     return @"
 Marketplace rules for Etsy:
-- Title target length: 110-140 characters where possible.
-- Title should sound human and elegant, not spammy.
-- Blend product type + style + material/stone appearance + audience/gift intent.
-- Tags are extremely important.
-- Prefer multi-word tags and long-tail phrases.
-- Avoid too many single-word tags.
-- Avoid repeating the same root word excessively across tags.
-- Title intent and tags should align.
+
+Title Rules:
+- Title target length: 110-140 characters.
+- The first 40 characters should contain the strongest search phrase or primary keyword.
+- Titles must read naturally and not feel keyword stuffed.
+- Use a clean buyer-friendly structure such as:
+  MAIN KEYWORD – secondary keyword, style, gift intent.
+- Avoid generic phrases like fashion jewelry, casual accessory, elegant wear, trendy style unless there is no better search phrase.
+
+Keyword Rules:
+- Prefer real buyer search phrases like panther ring, jaguar ring, animal ring, leopard ring, statement ring when relevant.
+- Use keyword phrasing that resembles Etsy search suggestions and shopper intent.
+- Favor multi-word phrases over weak single words.
+- Balance broad discoverability with niche long-tail intent.
+
+Tag Rules:
+- Maximum 13 tags.
+- Prefer 2-3 word tags when possible.
+- Cover the title intent with tags.
+- Avoid excessive repetition of the same root word across all tags.
+- Avoid filler tags that do not help search intent.
+
+Conversion Rules:
+- Title should improve click-through rate, not only keyword density.
 - Description should feel warm, giftable, clear, and easy to skim.
-- Use natural shopper phrases.
-- Favor discoverability plus readability.";
+- The product should sound desirable and specific without overclaiming.";
 
                 case "ebay":
                     return @"
@@ -1049,18 +1174,37 @@ Marketplace rules:
             }
         }
 
-        private int CalculateSeoScore(ListingResult r, string marketplace)
+        private int CalculateSeoScore(ListingResult r, string marketplace, KeywordStrategyResult strategy)
         {
-            SeoBreakdown b = CalculateSeoBreakdown(r, marketplace);
+            SeoBreakdown b = CalculateSeoBreakdown(r, marketplace, strategy);
 
             int score = 0;
-            score += Math.Round(b.TitleScore * 0.30m, MidpointRounding.AwayFromZero) > int.MaxValue ? 0 : (int)Math.Round(b.TitleScore * 0.30m, MidpointRounding.AwayFromZero);
-            score += Math.Round(b.BulletsScore * 0.25m, MidpointRounding.AwayFromZero) > int.MaxValue ? 0 : (int)Math.Round(b.BulletsScore * 0.25m, MidpointRounding.AwayFromZero);
-            score += Math.Round(b.KeywordsScore * 0.20m, MidpointRounding.AwayFromZero) > int.MaxValue ? 0 : (int)Math.Round(b.KeywordsScore * 0.20m, MidpointRounding.AwayFromZero);
-            score += Math.Round(b.TagsScore * 0.25m, MidpointRounding.AwayFromZero) > int.MaxValue ? 0 : (int)Math.Round(b.TagsScore * 0.25m, MidpointRounding.AwayFromZero);
+            score += (int)Math.Round(b.TitleScore * 0.34m, MidpointRounding.AwayFromZero);
+            score += (int)Math.Round(b.BulletsScore * 0.21m, MidpointRounding.AwayFromZero);
+            score += (int)Math.Round(b.KeywordsScore * 0.20m, MidpointRounding.AwayFromZero);
+            score += (int)Math.Round(b.TagsScore * 0.25m, MidpointRounding.AwayFromZero);
 
             int repetitionPenalty = GetKeywordRepetitionPenalty(r.title, r.description, SplitCsv(r.tags));
             score -= repetitionPenalty;
+
+            string mp = (marketplace ?? "").Trim().ToLowerInvariant();
+
+            if (mp == "etsy")
+            {
+                if (TitleStartsWellForEtsy(r.title, strategy))
+                    score += 4;
+
+                if (SplitCsv(r.tags).Count >= 12)
+                    score += 3;
+
+                if (CountMultiWordTags(SplitCsv(r.tags)) >= 10)
+                    score += 3;
+
+                if (ContainsWeakGenericEtsyPhrases(r.title))
+                    score -= 5;
+
+                score -= GetTagRootRepetitionPenalty(SplitCsv(r.tags));
+            }
 
             if (score > 100) score = 100;
             if (score < 0) score = 0;
@@ -1068,7 +1212,7 @@ Marketplace rules:
             return score;
         }
 
-        private SeoBreakdown CalculateSeoBreakdown(ListingResult r, string marketplace)
+        private SeoBreakdown CalculateSeoBreakdown(ListingResult r, string marketplace, KeywordStrategyResult strategy)
         {
             SeoBreakdown b = new SeoBreakdown();
 
@@ -1078,11 +1222,10 @@ Marketplace rules:
             List<string> keywords = SplitCsv(r.keywords);
             List<string> tags = SplitCsv(r.tags);
 
-            // Title 0-100
             int titleScore = 0;
             int titleLen = title.Length;
 
-            if (titleLen >= 25) titleScore += 20;
+            if (titleLen >= 25) titleScore += 15;
 
             if (mp == "amazon")
             {
@@ -1093,8 +1236,14 @@ Marketplace rules:
             else if (mp == "etsy")
             {
                 if (titleLen >= 110 && titleLen <= 140) titleScore += 45;
-                else if (titleLen >= 85) titleScore += 30;
-                else if (titleLen >= 60) titleScore += 18;
+                else if (titleLen >= 90 && titleLen < 110) titleScore += 34;
+                else if (titleLen >= 70) titleScore += 22;
+
+                if (TitleStartsWellForEtsy(title, strategy))
+                    titleScore += 15;
+
+                if (!ContainsWeakGenericEtsyPhrases(title))
+                    titleScore += 8;
             }
             else if (mp == "ebay")
             {
@@ -1110,16 +1259,15 @@ Marketplace rules:
             }
 
             int titleTagCoverage = CountTitleTagCoverage(title, tags);
-            if (titleTagCoverage >= 4) titleScore += 25;
-            else if (titleTagCoverage >= 2) titleScore += 15;
-            else if (titleTagCoverage >= 1) titleScore += 8;
+            if (titleTagCoverage >= 5) titleScore += 18;
+            else if (titleTagCoverage >= 3) titleScore += 12;
+            else if (titleTagCoverage >= 1) titleScore += 6;
 
             if (!string.IsNullOrWhiteSpace(title) && title.Split(' ').Length >= 4)
-                titleScore += 10;
+                titleScore += 8;
 
             b.TitleScore = Clamp100(titleScore);
 
-            // Bullets 0-100
             string[] bullets = { r.bullet1, r.bullet2, r.bullet3, r.bullet4, r.bullet5 };
             int filledBullets = bullets.Count(x => !string.IsNullOrWhiteSpace(x));
             int distinctBullets = bullets
@@ -1130,6 +1278,7 @@ Marketplace rules:
 
             int bulletsScore = 0;
             bulletsScore += Math.Min(60, filledBullets * 12);
+
             if (distinctBullets >= 5) bulletsScore += 25;
             else if (distinctBullets >= 4) bulletsScore += 18;
             else if (distinctBullets >= 3) bulletsScore += 10;
@@ -1139,11 +1288,10 @@ Marketplace rules:
 
             b.BulletsScore = Clamp100(bulletsScore);
 
-            // Keywords 0-100
             int keywordsScore = 0;
-            if (keywords.Count >= 10) keywordsScore += 70;
-            else if (keywords.Count >= 8) keywordsScore += 55;
-            else if (keywords.Count >= 5) keywordsScore += 35;
+            if (keywords.Count >= 10) keywordsScore += 68;
+            else if (keywords.Count >= 8) keywordsScore += 54;
+            else if (keywords.Count >= 5) keywordsScore += 36;
             else if (keywords.Count >= 3) keywordsScore += 20;
 
             int multiWordKeywords = keywords.Count(x => x.Contains(" "));
@@ -1153,22 +1301,31 @@ Marketplace rules:
             if (description.Length >= 220)
                 keywordsScore += 10;
 
+            if (mp == "etsy" && strategy != null && !string.IsNullOrWhiteSpace(strategy.primary_keyword))
+            {
+                if (keywords.Any(x => x.IndexOf(strategy.primary_keyword, StringComparison.OrdinalIgnoreCase) >= 0))
+                    keywordsScore += 2;
+            }
+
             b.KeywordsScore = Clamp100(keywordsScore);
 
-            // Tags 0-100
             int tagsScore = 0;
             if (mp == "etsy")
             {
-                if (tags.Count >= 13) tagsScore += 65;
-                else if (tags.Count >= 10) tagsScore += 50;
-                else if (tags.Count >= 7) tagsScore += 35;
+                if (tags.Count >= 13) tagsScore += 60;
+                else if (tags.Count >= 10) tagsScore += 48;
+                else if (tags.Count >= 7) tagsScore += 34;
 
-                int multiWordTags = tags.Count(x => x.Contains(" "));
-                if (multiWordTags >= 9) tagsScore += 25;
-                else if (multiWordTags >= 6) tagsScore += 15;
+                int multiWordTags = CountMultiWordTags(tags);
+                if (multiWordTags >= 10) tagsScore += 20;
+                else if (multiWordTags >= 7) tagsScore += 14;
 
-                if (CountTitleTagCoverage(title, tags) >= 3)
-                    tagsScore += 10;
+                int exactishCoverage = CountTitleTagCoverage(title, tags);
+                if (exactishCoverage >= 4) tagsScore += 10;
+                else if (exactishCoverage >= 2) tagsScore += 6;
+
+                int rootPenalty = GetTagRootRepetitionPenalty(tags);
+                tagsScore -= rootPenalty;
             }
             else
             {
@@ -1233,7 +1390,96 @@ Marketplace rules:
             return Math.Min(10, repeated * 2);
         }
 
-        private void NormalizeListingByMarketplace(ListingResult result, string marketplace)
+        private bool TitleStartsWellForEtsy(string title, KeywordStrategyResult strategy)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return false;
+
+            string start = title.Trim();
+            if (start.Length > 45)
+                start = start.Substring(0, 45);
+
+            List<string> candidates = new List<string>();
+
+            if (strategy != null)
+            {
+                if (!string.IsNullOrWhiteSpace(strategy.primary_keyword))
+                    candidates.Add(strategy.primary_keyword);
+
+                if (strategy.title_must_include != null)
+                    candidates.AddRange(strategy.title_must_include.Where(x => !string.IsNullOrWhiteSpace(x)).Take(3));
+            }
+
+            candidates.AddRange(new[]
+            {
+                "panther ring",
+                "jaguar ring",
+                "leopard ring",
+                "animal ring",
+                "statement ring",
+                "cat ring"
+            });
+
+            return candidates
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Select(x => x.Trim().ToLowerInvariant())
+                .Distinct()
+                .Any(x => start.ToLowerInvariant().Contains(x));
+        }
+
+        private bool ContainsWeakGenericEtsyPhrases(string title)
+        {
+            if (string.IsNullOrWhiteSpace(title))
+                return false;
+
+            string s = title.ToLowerInvariant();
+
+            string[] weak =
+            {
+                "fashion jewelry",
+                "casual wear",
+                "party wear",
+                "casual accessory",
+                "stylish accessory",
+                "elegant wear",
+                "trendy style"
+            };
+
+            return weak.Any(x => s.Contains(x));
+        }
+
+        private int CountMultiWordTags(List<string> tags)
+        {
+            return (tags ?? new List<string>())
+                .Count(x => !string.IsNullOrWhiteSpace(x) && x.Trim().Contains(" "));
+        }
+
+        private int GetTagRootRepetitionPenalty(List<string> tags)
+        {
+            if (tags == null || tags.Count == 0)
+                return 0;
+
+            var words = tags
+                .SelectMany(x => Regex.Split((x ?? "").ToLowerInvariant(), @"[^a-z0-9çğıöşü]+"))
+                .Where(x => x.Length >= 4)
+                .Where(x => x != "gift" && x != "for" && x != "with" && x != "women")
+                .ToList();
+
+            int penalty = 0;
+
+            foreach (var g in words.GroupBy(x => x))
+            {
+                if (g.Count() >= 5)
+                    penalty += 2;
+            }
+
+            if (penalty > 10)
+                penalty = 10;
+
+            return penalty;
+        }
+
+        private void NormalizeListingByMarketplace(ListingResult result, string marketplace, KeywordStrategyResult strategy)
         {
             if (result == null) return;
 
@@ -1252,7 +1498,7 @@ Marketplace rules:
             if (mp == "etsy")
             {
                 result.title = TrimSafe(result.title, 140);
-                result.tags = LimitCsvItems(result.tags, 13, 20);
+                result.tags = NormalizeEtsyTags(result.tags, strategy);
             }
             else if (mp == "ebay")
             {
@@ -1269,6 +1515,60 @@ Marketplace rules:
                 result.title = TrimSafe(result.title, 160);
                 result.tags = LimitCsvItems(result.tags, 20, 40);
             }
+        }
+
+        private string NormalizeEtsyTags(string input, KeywordStrategyResult strategy)
+        {
+            List<string> tags = SplitCsv(input)
+                .Select(CleanText)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Where(x => x.Length <= 20)
+                .Where(x => !IsWeakEtsyTag(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (strategy != null && strategy.tags_must_cover != null)
+            {
+                foreach (string must in strategy.tags_must_cover)
+                {
+                    string cleaned = CleanText(must);
+                    if (!string.IsNullOrWhiteSpace(cleaned) && cleaned.Length <= 20)
+                    {
+                        if (!tags.Any(x => x.Equals(cleaned, StringComparison.OrdinalIgnoreCase)))
+                            tags.Add(cleaned);
+                    }
+                }
+            }
+
+            tags = tags
+                .OrderByDescending(x => x.Contains(" "))
+                .ThenBy(x => x.Length)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(13)
+                .ToList();
+
+            return string.Join(", ", tags);
+        }
+
+        private bool IsWeakEtsyTag(string tag)
+        {
+            string s = (tag ?? "").Trim().ToLowerInvariant();
+
+            if (string.IsNullOrWhiteSpace(s))
+                return true;
+
+            string[] weak =
+            {
+                "fashion jewelry",
+                "casual wear",
+                "party wear",
+                "gift",
+                "jewelry",
+                "ring",
+                "accessory"
+            };
+
+            return weak.Contains(s);
         }
 
         private string BuildImageSignature(List<ProductImageInfo> images)
@@ -1694,6 +1994,10 @@ WHERE SKU = @SKU
               .Append(Server.HtmlEncode(s.differentiation_angle))
               .Append("</div>");
 
+            sb.Append("<div class='strategy-line'><strong>Seed Keywords Used:</strong> ")
+              .Append(Server.HtmlEncode(string.Join(", ", s.seed_keywords_used ?? new List<string>())))
+              .Append("</div>");
+
             return sb.ToString();
         }
 
@@ -1802,7 +2106,8 @@ WHERE SKU = @SKU
             sb.Append("Forbidden Claims: ").Append(string.Join(", ", s.forbidden_claims ?? new List<string>())).Append("\n");
             sb.Append("Tone: ").Append(s.tone).Append("\n");
             sb.Append("Buyer Intent: ").Append(s.buyer_intent).Append("\n");
-            sb.Append("Differentiation: ").Append(s.differentiation_angle);
+            sb.Append("Differentiation: ").Append(s.differentiation_angle).Append("\n");
+            sb.Append("Seed Keywords Used: ").Append(string.Join(", ", s.seed_keywords_used ?? new List<string>()));
 
             return sb.ToString();
         }
@@ -1827,37 +2132,24 @@ WHERE SKU = @SKU
             if (result.title_must_include == null) result.title_must_include = new List<string>();
             if (result.tags_must_cover == null) result.tags_must_cover = new List<string>();
             if (result.forbidden_claims == null) result.forbidden_claims = new List<string>();
+            if (result.seed_keywords_used == null) result.seed_keywords_used = new List<string>();
 
             result.primary_keyword = NullToEmpty(result.primary_keyword);
             result.tone = NullToEmpty(result.tone);
             result.buyer_intent = NullToEmpty(result.buyer_intent);
             result.differentiation_angle = NullToEmpty(result.differentiation_angle);
 
-            result.secondary_keywords = result.secondary_keywords
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x => x.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            result.secondary_keywords = NormalizeStringList(result.secondary_keywords);
+            result.long_tail_keywords = NormalizeStringList(result.long_tail_keywords);
+            result.title_must_include = NormalizeStringList(result.title_must_include);
+            result.tags_must_cover = NormalizeStringList(result.tags_must_cover);
+            result.forbidden_claims = NormalizeStringList(result.forbidden_claims);
+            result.seed_keywords_used = NormalizeStringList(result.seed_keywords_used);
+        }
 
-            result.long_tail_keywords = result.long_tail_keywords
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x => x.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            result.title_must_include = result.title_must_include
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x => x.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            result.tags_must_cover = result.tags_must_cover
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x => x.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            result.forbidden_claims = result.forbidden_claims
+        private List<string> NormalizeStringList(List<string> source)
+        {
+            return (source ?? new List<string>())
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(x => x.Trim())
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -2091,15 +2383,37 @@ WHERE SKU = @SKU
 
         private void SetRadarVisual(int titleScore, int bulletsScore, int keywordsScore, int tagsScore)
         {
-            litRadarTitleBar.Text = "<div style='width:" + Clamp100(titleScore).ToString() + "%;height:100%;'></div>";
-            litRadarBulletsBar.Text = "<div style='width:" + Clamp100(bulletsScore).ToString() + "%;height:100%;'></div>";
-            litRadarKeywordsBar.Text = "<div style='width:" + Clamp100(keywordsScore).ToString() + "%;height:100%;'></div>";
-            litRadarTagsBar.Text = "<div style='width:" + Clamp100(tagsScore).ToString() + "%;height:100%;'></div>";
+            int t = Clamp100(titleScore);
+            int b = Clamp100(bulletsScore);
+            int k = Clamp100(keywordsScore);
+            int g = Clamp100(tagsScore);
 
-            litRadarTitleText.Text = Clamp100(titleScore).ToString() + "%";
-            litRadarBulletsText.Text = Clamp100(bulletsScore).ToString() + "%";
-            litRadarKeywordsText.Text = Clamp100(keywordsScore).ToString() + "%";
-            litRadarTagsText.Text = Clamp100(tagsScore).ToString() + "%";
+            SetRadarBar(radarTitleBar, t);
+            SetRadarBar(radarBulletsBar, b);
+            SetRadarBar(radarKeywordsBar, k);
+            SetRadarBar(radarTagsBar, g);
+
+            litRadarTitleText.Text = t.ToString() + "%";
+            litRadarBulletsText.Text = b.ToString() + "%";
+            litRadarKeywordsText.Text = k.ToString() + "%";
+            litRadarTagsText.Text = g.ToString() + "%";
+        }
+
+        private void SetRadarBar(System.Web.UI.HtmlControls.HtmlGenericControl bar, int score)
+        {
+            if (bar == null) return;
+
+            bar.Attributes["class"] = "seo-radar-fill " + GetRadarClass(score);
+            bar.Style["width"] = Clamp100(score).ToString() + "%";
+        }
+
+        private string GetRadarClass(int score)
+        {
+            score = Clamp100(score);
+
+            if (score >= 75) return "high";
+            if (score >= 50) return "medium";
+            return "low";
         }
 
         private void StoreAllResultsInViewState(List<MultiMarketplaceResult> results)
@@ -2193,6 +2507,7 @@ WHERE SKU = @SKU
         public string tone { get; set; }
         public string buyer_intent { get; set; }
         public string differentiation_angle { get; set; }
+        public List<string> seed_keywords_used { get; set; }
     }
 
     public class ListingResult

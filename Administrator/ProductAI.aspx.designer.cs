@@ -168,13 +168,13 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.Literal litSeoHint;
 
         /// <summary>
-        /// litRadarTitleBar control.
+        /// radarTitleBar control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Literal litRadarTitleBar;
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl radarTitleBar;
 
         /// <summary>
         /// litRadarTitleText control.
@@ -186,13 +186,13 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.Literal litRadarTitleText;
 
         /// <summary>
-        /// litRadarBulletsBar control.
+        /// radarBulletsBar control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Literal litRadarBulletsBar;
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl radarBulletsBar;
 
         /// <summary>
         /// litRadarBulletsText control.
@@ -204,13 +204,13 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.Literal litRadarBulletsText;
 
         /// <summary>
-        /// litRadarKeywordsBar control.
+        /// radarKeywordsBar control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Literal litRadarKeywordsBar;
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl radarKeywordsBar;
 
         /// <summary>
         /// litRadarKeywordsText control.
@@ -222,13 +222,13 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.Literal litRadarKeywordsText;
 
         /// <summary>
-        /// litRadarTagsBar control.
+        /// radarTagsBar control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Literal litRadarTagsBar;
+        protected global::System.Web.UI.HtmlControls.HtmlGenericControl radarTagsBar;
 
         /// <summary>
         /// litRadarTagsText control.

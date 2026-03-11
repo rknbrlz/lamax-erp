@@ -45,7 +45,6 @@ namespace Feniks
             {
                 int userId = CallValidateUser(usernameOrEmail, password);
 
-                // ✅ overlay’i kesin kapat (redirect olsa bile sorun olmaz)
                 HideLoadingClient();
 
                 Logger.Log("ValidateUser got userId, continuing...");
@@ -63,13 +62,15 @@ namespace Feniks
                         return;
 
                     default:
-                        // ✅ RedirectFromLoginPage bazen cookie/SSL konfigünde takılabiliyor.
-                        // Daha basit ve stabil akış:
-                        FormsAuthentication.SetAuthCookie(usernameOrEmail, false);
+                        bool rememberMe = chkRememberMe.Checked;
+                        FormsAuthentication.SetAuthCookie(usernameOrEmail, rememberMe);
 
                         string returnUrl = Request.QueryString["ReturnUrl"];
                         if (!string.IsNullOrEmpty(returnUrl))
+                        {
                             Response.Redirect(returnUrl, true);
+                            return;
+                        }
 
                         Response.Redirect("~/MenuRoute.aspx", true);
                         return;
@@ -95,7 +96,6 @@ namespace Feniks
 
             string raw = ConfigurationManager.ConnectionStrings["constr"].ConnectionString;
 
-            // ✅ con.Open() sonsuza gitmesin
             var b = new SqlConnectionStringBuilder(raw);
             b.ConnectTimeout = 5;
             b.ConnectRetryCount = 0;
@@ -153,10 +153,11 @@ namespace Feniks
                     con.Open();
                     object v = cmd.ExecuteScalar();
                     con.Close();
-                    if (v != null) userId = Convert.ToInt32(v);
+
+                    if (v != null)
+                        userId = Convert.ToInt32(v);
                 }
 
-                // güvenlik: kullanıcı yoksa bile başarılı gibi davran
                 if (userId <= 0)
                 {
                     pnlForgotOk.Visible = true;

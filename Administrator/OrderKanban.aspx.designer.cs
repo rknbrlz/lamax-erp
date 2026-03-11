@@ -15,6 +15,33 @@ namespace Feniks.Administrator
     {
 
         /// <summary>
+        /// litSummaryOpen control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Literal litSummaryOpen;
+
+        /// <summary>
+        /// litSummaryProgress control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Literal litSummaryProgress;
+
+        /// <summary>
+        /// litSummaryClosed control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Literal litSummaryClosed;
+
+        /// <summary>
         /// litBadgeOpen control.
         /// </summary>
         /// <remarks>

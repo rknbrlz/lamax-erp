@@ -317,7 +317,6 @@
         margin-bottom:8px;
     }
 
-    /* SEO Radar */
     .seo-radar-card {
         width:100%;
         margin-top:14px;
@@ -359,11 +358,23 @@
     }
 
     .seo-radar-fill {
+        display:block;
         height:100%;
         width:0%;
-        background:linear-gradient(90deg,#ffffff 0%,#fef3c7 100%);
         border-radius:999px;
-        transition:width .25s ease;
+        transition:width .35s ease;
+    }
+
+    .seo-radar-fill.low {
+        background:linear-gradient(90deg,#ef4444 0%,#f87171 100%);
+    }
+
+    .seo-radar-fill.medium {
+        background:linear-gradient(90deg,#f59e0b 0%,#fbbf24 100%);
+    }
+
+    .seo-radar-fill.high {
+        background:linear-gradient(90deg,#22c55e 0%,#4ade80 100%);
     }
 
     .seo-radar-value {
@@ -373,7 +384,6 @@
         text-align:right;
     }
 
-    /* Loading overlay */
     .ai-loading-overlay {
         position:fixed;
         inset:0;
@@ -600,9 +610,7 @@
                     <div class="seo-radar-row">
                         <div class="seo-radar-label">Title</div>
                         <div class="seo-radar-track">
-                            <div class="seo-radar-fill">
-                                <asp:Literal ID="litRadarTitleBar" runat="server" />
-                            </div>
+                            <div id="radarTitleBar" runat="server" class="seo-radar-fill"></div>
                         </div>
                         <div class="seo-radar-value">
                             <asp:Literal ID="litRadarTitleText" runat="server" Text="0%" />
@@ -612,9 +620,7 @@
                     <div class="seo-radar-row">
                         <div class="seo-radar-label">Bullets</div>
                         <div class="seo-radar-track">
-                            <div class="seo-radar-fill">
-                                <asp:Literal ID="litRadarBulletsBar" runat="server" />
-                            </div>
+                            <div id="radarBulletsBar" runat="server" class="seo-radar-fill"></div>
                         </div>
                         <div class="seo-radar-value">
                             <asp:Literal ID="litRadarBulletsText" runat="server" Text="0%" />
@@ -624,9 +630,7 @@
                     <div class="seo-radar-row">
                         <div class="seo-radar-label">Keywords</div>
                         <div class="seo-radar-track">
-                            <div class="seo-radar-fill">
-                                <asp:Literal ID="litRadarKeywordsBar" runat="server" />
-                            </div>
+                            <div id="radarKeywordsBar" runat="server" class="seo-radar-fill"></div>
                         </div>
                         <div class="seo-radar-value">
                             <asp:Literal ID="litRadarKeywordsText" runat="server" Text="0%" />
@@ -636,9 +640,7 @@
                     <div class="seo-radar-row" style="margin-bottom:0;">
                         <div class="seo-radar-label">Tags</div>
                         <div class="seo-radar-track">
-                            <div class="seo-radar-fill">
-                                <asp:Literal ID="litRadarTagsBar" runat="server" />
-                            </div>
+                            <div id="radarTagsBar" runat="server" class="seo-radar-fill"></div>
                         </div>
                         <div class="seo-radar-value">
                             <asp:Literal ID="litRadarTagsText" runat="server" Text="0%" />

@@ -1,5 +1,4 @@
 ﻿<%@ Master Language="C#" AutoEventWireup="true" CodeBehind="Site.master.cs" Inherits="Feniks.SiteMaster" %>
-
 <!DOCTYPE html>
 <html lang="en">
 <head runat="server">
@@ -9,254 +8,506 @@
 
     <link rel="shortcut icon" href="/lamaX_logo_trans.ico" type="image/x-icon" />
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="<%= ResolveUrl("~/Content/Site.css") %>" />
+    <link rel="stylesheet" href="<%= ResolveUrl("~/Content/lamax-responsive.css") %>" />
 
     <style>
-        html, body { height:100%; }
-        body{
-            background:#f5f6f8;
-            margin:0;
-            padding-top:0 !important;
+        html, body {
+            height: 100%;
         }
 
-        .app-shell{ display:flex; min-height:100vh; }
-
-        .left-rail{
-            width:64px;
-            background:#fff;
-            border-right:1px solid rgba(0,0,0,.06);
-            position:sticky;
-            top:0;
-            height:100vh;
-            z-index:20;
-            overflow-y:auto;
-            overflow-x:hidden;
-            padding-bottom:12px;
+        body {
+            margin: 0;
+            padding-top: 0 !important;
+            padding-bottom: 0;
+            background: #f5f6f8;
+            color: #1f2937;
+            font-family: Arial, Helvetica, sans-serif;
         }
 
-        .left-rail .brand-mini{
-            width:40px;height:40px;border-radius:12px;
-            margin:10px auto 12px auto;
-            overflow:hidden;
-            border:1px solid rgba(0,0,0,.06);
+        *,
+        *:before,
+        *:after {
+            box-sizing: border-box;
         }
 
-        .left-rail .brand-mini img{
-            width:100%;
-            height:100%;
-            object-fit:cover;
-            display:block;
+        img {
+            max-width: 100%;
+            height: auto;
         }
 
-        .navicon{
-            width:44px;height:44px;margin:8px auto;border-radius:12px;
-            display:flex;align-items:center;justify-content:center;
-            color:#666;text-decoration:none;
-            transition:all .15s ease;
+        .app-shell {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
         }
 
-        .navicon:hover{
-            background:#f6f7fb;
-            color:#333;
-            text-decoration:none;
+        .left-rail {
+            width: 88px;
+            background: #ffffff;
+            border-right: 1px solid rgba(0,0,0,.06);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            z-index: 1040;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
         }
 
-        .navicon.active{
-            background:#eef2ff;
-            color:#3b5bdb;
-            font-weight:900;
+        .rail-top {
+            padding: 14px 10px;
+            border-bottom: 1px solid rgba(0,0,0,.05);
+            display: flex;
+            justify-content: center;
         }
 
-        .main-col{ flex:1; min-width:0; }
-
-        /* ===== TOPBAR ===== */
-        .topbar{
-            position:sticky; top:0; z-index:50;
-            height:58px;
-            display:flex; align-items:center; justify-content:space-between;
-            padding:0 16px;
-
-            background: rgba(255,255,255,.65);
-            backdrop-filter: blur(12px);
-            border-bottom:1px solid rgba(0,0,0,.06);
-            box-shadow: 0 10px 30px rgba(0,0,0,.06);
+        .brand-box {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: #111827;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            text-decoration: none;
         }
 
-        .page-wrap{
-            padding: 14px 18px 24px 18px;
+        .brand-logo {
+            width: 34px;
+            height: 34px;
+            object-fit: contain;
         }
 
-        /* ===== PROFILE ===== */
-        .profile{
-            display:flex;align-items:center;gap:10px;
-            min-width:260px;
+        .brand-text-fallback {
+            width: 34px;
+            height: 34px;
+            color: #fff;
+            font-weight: 800;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
         }
 
-        .avatar{
-            width:36px;height:36px;border-radius:12px;
-            background:#f3f3f3;
-            border:1px solid rgba(0,0,0,.08);
-            overflow:hidden;
-            display:flex;align-items:center;justify-content:center;
-            font-weight:600;
-            font-size:13px;
-            color:#666;
+        .rail-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 12px 10px;
         }
 
-        .avatar img{
-            width:100%;
-            height:100%;
-            object-fit:cover;
-            display:block;
+        .rail-link {
+            min-height: 56px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4b5563;
+            text-decoration: none !important;
+            position: relative;
+            transition: all .18s ease;
         }
 
-        .pname{
-            font-weight:400;
-            font-size:15px;
-            color:#222;
-            line-height:1.2;
+        .rail-link .glyphicon {
+            font-size: 18px;
         }
 
-        .pname .role{
-            font-weight:400;
-            color:#8c8c8c;
-            margin-left:4px;
+        .rail-link:hover {
+            background: #f3f4f6;
+            color: #111827;
         }
 
-        /* ===== RIGHT ACTIONS ===== */
-        .top-actions{
-            display:flex;
-            align-items:center;
-            gap:10px;
+        .rail-link.active {
+            background: #111827;
+            color: #ffffff;
         }
 
-        .icon-btn{
-            width:40px;height:40px;border-radius:12px;
-            border:1px solid rgba(0,0,0,.08);
-            background:rgba(255,255,255,.7);
-            display:flex;align-items:center;justify-content:center;
-            position:relative;
-            text-decoration:none;
-            color:#444;
+        .rail-label {
+            display: none;
         }
 
-        .icon-btn:hover{
-            background:rgba(255,255,255,.95);
-            text-decoration:none;
-            color:#222;
+        .app-main {
+            min-width: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        .badge-dot{
-            position:absolute;
-            top:6px;
-            right:6px;
-            min-width:18px;
-            height:18px;
-            padding:0 5px;
-            border-radius:999px;
-            background:#ff3b30;
-            color:#fff;
-            font-size:11px;
-            font-weight:700;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            border:2px solid rgba(255,255,255,.85);
+        .topbar {
+            height: 72px;
+            background: rgba(255,255,255,.92);
+            border-bottom: 1px solid rgba(0,0,0,.06);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+        }
+
+        .topbar-left,
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            min-width: 0;
+        }
+
+        .menu-toggle {
+            border: 1px solid rgba(0,0,0,.08);
+            background: #fff;
+            border-radius: 12px;
+            width: 42px;
+            height: 42px;
+            font-size: 18px;
+        }
+
+        .topbar-title-wrap {
+            min-width: 0;
+        }
+
+        .topbar-title {
+            font-size: 20px;
+            font-weight: 800;
+            line-height: 1.1;
+            color: #111827;
+        }
+
+        .topbar-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .notif-box {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,.08);
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .notif-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #fff;
+            font-size: 11px;
+            line-height: 18px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .user-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #fff;
+            border: 1px solid rgba(0,0,0,.08);
+            border-radius: 14px;
+            padding: 6px 10px 6px 6px;
+            min-width: 0;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: #111827;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-meta {
+            min-width: 0;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #111827;
+            line-height: 1.1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        .user-role {
+            font-size: 12px;
+            color: #6b7280;
+            line-height: 1.1;
+            margin-top: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        .page-host {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .page-container {
+            padding: 18px;
+            width: 100%;
+            max-width: 100%;
+        }
+
+        .sidebar-overlay {
+            display: none;
+        }
+
+        @media (max-width: 991px) {
+            .left-rail {
+                position: fixed;
+                left: 0;
+                top: 0;
+                transform: translateX(-100%);
+                transition: transform .22s ease;
+                width: 260px;
+                box-shadow: 0 10px 30px rgba(0,0,0,.18);
+            }
+
+            body.sidebar-open .left-rail {
+                transform: translateX(0);
+            }
+
+            .sidebar-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, .42);
+                z-index: 1035;
+            }
+
+            body.sidebar-open .sidebar-overlay {
+                display: block;
+            }
+
+            .rail-top {
+                justify-content: flex-start;
+                padding: 16px;
+            }
+
+            .brand-box {
+                width: 52px;
+                height: 52px;
+                border-radius: 14px;
+            }
+
+            .rail-nav {
+                padding: 12px;
+                gap: 8px;
+            }
+
+            .rail-link {
+                justify-content: flex-start;
+                gap: 12px;
+                padding: 0 16px;
+            }
+
+            .rail-label {
+                display: inline;
+                font-size: 14px;
+                font-weight: 700;
+            }
+
+            .topbar {
+                padding: 0 14px;
+            }
+
+            .page-container {
+                padding: 14px;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .topbar {
+                height: 64px;
+            }
+
+            .topbar-title {
+                font-size: 17px;
+            }
+
+            .page-container {
+                padding: 12px;
+            }
+
+            .user-box {
+                padding-right: 6px;
+            }
         }
     </style>
 
     <asp:ContentPlaceHolder ID="HeadContent" runat="server" />
 </head>
-
 <body>
-<form id="form1" runat="server">
+    <form id="form1" runat="server">
+        <asp:ScriptManager ID="smMain" runat="server" EnablePartialRendering="true" />
 
-    <asp:ScriptManager ID="sm1" runat="server" EnablePartialRendering="true" />
+        <div class="app-shell" id="appShell">
 
-    <div class="app-shell">
+            <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar(false)"></div>
 
-        <!-- LEFT RAIL -->
-        <aside class="left-rail">
-            <div class="brand-mini">
-                <img src="<%= ResolveUrl("~/Images/hgerman_logo.png") %>" alt="Logo" />
-            </div>
-
-            <a class="navicon <%= IsActive("/Administrator/MenuforAdmin") ? "active" : "" %>"
-               href="/Administrator/MenuforAdmin.aspx" title="Home">
-                <span class="glyphicon glyphicon-home"></span>
-            </a>
-
-            <a class="navicon <%= IsActive("/Administrator/OrderList") ? "active" : "" %>"
-               href="/Administrator/OrderList.aspx" title="Orders">
-                <span class="glyphicon glyphicon-th-list"></span>
-            </a>
-
-            <a class="navicon <%= IsActive("/Administrator/OrderKanban") ? "active" : "" %>"
-               href="/Administrator/OrderKanban.aspx" title="Order Kanban">
-                <span class="glyphicon glyphicon-tasks"></span>
-            </a>
-
-            <a class="navicon <%= IsActive("/Administrator/Stock") ? "active" : "" %>"
-               href="/Administrator/Stock.aspx" title="Stock">
-                <span class="glyphicon glyphicon-inbox"></span>
-            </a>
-
-            <a class="navicon <%= IsActive("/Administrator/ProductAI") ? "active" : "" %>"
-               href="/Administrator/ProductAI.aspx" title="Product AI">
-                <span class="glyphicon glyphicon-flash"></span>
-            </a>
-
-            <a class="navicon <%= IsActive("/Administrator/ProductImages") ? "active" : "" %>"
-               href="/Administrator/ProductImages.aspx" title="Product Images">
-                <span class="glyphicon glyphicon-picture"></span>
-            </a>
-
-            <a class="navicon <%= IsActive("/Administrator/Dashboard") ? "active" : "" %>"
-               href="/Administrator/Dashboard.aspx" title="Dashboard">
-                <span class="glyphicon glyphicon-stats"></span>
-            </a>
-        </aside>
-
-        <!-- MAIN -->
-        <div class="main-col">
-
-            <header class="topbar">
-                <div class="profile">
-                    <div class="avatar">
-                        <asp:Image ID="imgAvatar" runat="server" Visible="false" />
-                        <asp:Literal ID="litAvatarFallback" runat="server" Text="U" />
-                    </div>
-
-                    <div class="pname">
-                        <asp:Literal ID="litFullName" runat="server" />
-                        <span class="role">
-                            <asp:Literal ID="litRoleName" runat="server" />
-                        </span>
-                    </div>
-                </div>
-
-                <div class="top-actions">
-                    <a class="icon-btn" href="javascript:void(0)" title="Notifications">
-                        <span class="glyphicon glyphicon-bell"></span>
-                        <asp:PlaceHolder ID="phNotifBadge" runat="server">
-                            <span class="badge-dot">
-                                <asp:Literal ID="litNotifCount" runat="server" Text="1" />
-                            </span>
-                        </asp:PlaceHolder>
+            <aside class="left-rail" id="leftRail">
+                <div class="rail-top">
+                    <a href="/Administrator/MenuforAdmin.aspx" class="brand-box" title="LamaX Home">
+                        <img src="/lamaX_logo_trans.ico" alt="LamaX" class="brand-logo"
+                             onerror="this.style.display='none'; document.getElementById('brandText').style.display='flex';" />
+                        <div id="brandText" class="brand-text-fallback" style="display:none;">LX</div>
                     </a>
                 </div>
-            </header>
 
-            <main class="page-wrap">
-                <asp:ContentPlaceHolder ID="MainContent" runat="server" />
-            </main>
+                <nav class="rail-nav">
+                    <a href="/Administrator/MenuforAdmin.aspx"
+                       class='rail-link <%= IsActive("/administrator/menuforadmin.aspx") ? "active" : "" %>'
+                       title="Home">
+                        <span class="glyphicon glyphicon-home"></span>
+                        <span class="rail-label">Home</span>
+                    </a>
 
+                    <a href="/Administrator/OrderList.aspx"
+                       class='rail-link <%= IsActive("/administrator/orderlist.aspx") ? "active" : "" %>'
+                       title="Orders">
+                        <span class="glyphicon glyphicon-list-alt"></span>
+                        <span class="rail-label">Orders</span>
+                    </a>
+
+                    <a href="/Administrator/OrderKanban.aspx"
+                       class='rail-link <%= IsActive("/administrator/orderkanban.aspx") ? "active" : "" %>'
+                       title="Kanban">
+                        <span class="glyphicon glyphicon-th-large"></span>
+                        <span class="rail-label">Kanban</span>
+                    </a>
+
+                    <a href="/Administrator/Stock.aspx"
+                       class='rail-link <%= IsActive("/administrator/stock.aspx") ? "active" : "" %>'
+                       title="Stock">
+                        <span class="glyphicon glyphicon-inbox"></span>
+                        <span class="rail-label">Stock</span>
+                    </a>
+
+                    <a href="/Administrator/ProductAI.aspx"
+                       class='rail-link <%= IsActive("/administrator/productai.aspx") ? "active" : "" %>'
+                       title="Product AI">
+                        <span class="glyphicon glyphicon-flash"></span>
+                        <span class="rail-label">Product AI</span>
+                    </a>
+
+                    <a href="/Administrator/ProductImages.aspx"
+                       class='rail-link <%= IsActive("/administrator/productimages.aspx") ? "active" : "" %>'
+                       title="Images">
+                        <span class="glyphicon glyphicon-picture"></span>
+                        <span class="rail-label">Images</span>
+                    </a>
+
+                    <a href="/Administrator/Dashboard.aspx"
+                       class='rail-link <%= IsActive("/administrator/dashboard.aspx") ? "active" : "" %>'
+                       title="Dashboard">
+                        <span class="glyphicon glyphicon-stats"></span>
+                        <span class="rail-label">Dashboard</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <div class="app-main">
+                <header class="topbar">
+                    <div class="topbar-left">
+                        <button type="button" class="menu-toggle visible-xs visible-sm" onclick="toggleSidebar(true)">
+                            <span class="glyphicon glyphicon-menu-hamburger"></span>
+                        </button>
+
+                        <div class="topbar-title-wrap">
+                            <div class="topbar-title">LamaX ERP</div>
+                            <div class="topbar-subtitle hidden-xs">Responsive admin workspace</div>
+                        </div>
+                    </div>
+
+                    <div class="topbar-right">
+                        <div class="notif-box">
+                            <span class="glyphicon glyphicon-bell"></span>
+                            <asp:PlaceHolder ID="phNotifBadge" runat="server" Visible="false">
+                                <span class="notif-badge">
+                                    <asp:Literal ID="litNotifCount" runat="server" />
+                                </span>
+                            </asp:PlaceHolder>
+                        </div>
+
+                        <div class="user-box">
+                            <div class="user-avatar">
+                                <asp:Image ID="imgAvatar" runat="server" CssClass="avatar-img" Visible="false" />
+                                <asp:Literal ID="litAvatarFallback" runat="server" />
+                            </div>
+                            <div class="user-meta hidden-xs">
+                                <div class="user-name">
+                                    <asp:Literal ID="litFullName" runat="server" />
+                                </div>
+                                <div class="user-role">
+                                    <asp:Literal ID="litRoleName" runat="server" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <main class="page-host">
+                    <div class="page-container">
+                        <asp:ContentPlaceHolder ID="MainContent" runat="server" />
+                    </div>
+                </main>
+            </div>
         </div>
-    </div>
+    </form>
 
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
+    <script type="text/javascript">
+        (function () {
+            function closeSidebarOnDesktop() {
+                if (window.innerWidth >= 992) {
+                    document.body.classList.remove("sidebar-open");
+                }
+            }
+
+            window.toggleSidebar = function (open) {
+                if (open) {
+                    document.body.classList.add("sidebar-open");
+                } else {
+                    document.body.classList.remove("sidebar-open");
+                }
+            };
+
+            window.addEventListener("resize", closeSidebarOnDesktop);
+            closeSidebarOnDesktop();
+        })();
+    </script>
+
     <asp:ContentPlaceHolder ID="ScriptsContent" runat="server" />
-</form>
 </body>
 </html>

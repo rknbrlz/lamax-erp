@@ -171,6 +171,7 @@
     <Content Include="Administrator\sounds\sound.wav" />
     <Content Include="Administrator\Stock.aspx" />
     <Content Include="Administrator\StockEntry.aspx" />
+    <Content Include="Administrator\StockHistory.aspx" />
     <Content Include="Administrator\StockManagement.aspx" />
     <Content Include="Administrator\WebForm2.aspx" />
     <Content Include="Administrator\WebForm3.aspx" />
@@ -183,6 +184,7 @@
     <Content Include="Content\bootstrap-theme.min.css" />
     <Content Include="Content\bootstrap.css" />
     <Content Include="Content\bootstrap.min.css" />
+    <Content Include="Content\lamax-responsive.css" />
     <Content Include="Content\Site.css" />
     <Content Include="DenyAccess.aspx" />
     <Content Include="favicon.ico" />
@@ -198,6 +200,7 @@
     <Content Include="Content\bootstrap-theme.css.map" />
     <Content Include="Administrator\ProductPhoto.ashx" />
     <Content Include="Administrator\DashboardApi.ashx" />
+    <Content Include="Images\loginback.png" />
     <Content Include="ProductImageHandler.ashx" />
     <None Include="Properties\PublishProfiles\FolderProfile.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - FTP.pubxml" />
@@ -395,6 +398,13 @@
     </Compile>
     <Compile Include="Administrator\ProductAI.aspx.designer.cs">
       <DependentUpon>ProductAI.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\StockHistory.aspx.cs">
+      <DependentUpon>StockHistory.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\StockHistory.aspx.designer.cs">
+      <DependentUpon>StockHistory.aspx</DependentUpon>
     </Compile>
     <Compile Include="ProductImageHandler.ashx.cs">
       <DependentUpon>ProductImageHandler.ashx</DependentUpon>

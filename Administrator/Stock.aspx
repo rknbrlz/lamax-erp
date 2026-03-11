@@ -1,264 +1,305 @@
-﻿<%@ Page Title="Stock | lamaX" Language="C#" MasterPageFile="~/Site.Master"
+﻿<%@ Page Title="Stock" Language="C#" MasterPageFile="~/Site.Master"
     AutoEventWireup="true" CodeBehind="Stock.aspx.cs" Inherits="Feniks.Administrator.Stock" %>
 
-<asp:Content ID="cTitle" ContentPlaceHolderID="TitleContent" runat="server">
-    Stock | lamaX
-</asp:Content>
+<asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
-<asp:Content ID="cHead" ContentPlaceHolderID="HeadContent" runat="server">
-    <style>
-        /* Stock page only */
-        .page-wrap{ max-width:1250px; margin:22px auto; }
-        .card{ background:#fff; border-radius:14px; box-shadow:0 10px 24px rgba(0,0,0,.08); padding:16px; margin-bottom:14px; }
-        .title{ font-weight:800; font-size:18px; margin:0 0 10px; }
-        .muted{ color:#7a7f87; }
-        .grid th{ background:#fafafa; }
-        .qty { font-weight:800; }
-        .qty.bad { color:#b30000; }
-        .qty.ok { color:#1a7f37; }
-        .btn-xs{ padding:3px 8px; }
-        .help{ font-size:12px; color:#7a7f87; margin-top:6px; }
-        .pill{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; background:#eef2ff; color:#334155; }
-        .pill-a{ background:#ecfeff; color:#155e75; }
-        .pill-s{ background:#f0fdf4; color:#166534; }
-        .pill-n{ background:#fef9c3; color:#854d0e; }
-        .modal .form-group{ margin-bottom:10px; }
-    </style>
-</asp:Content>
+<style>
+    body { background:#f5f6f8; }
+    .page-wrap { padding:14px; }
 
-<asp:Content ID="cMain" ContentPlaceHolderID="MainContent" runat="server">
+    .card-box{
+        background:#fff;
+        border:1px solid #e8e8e8;
+        border-radius:18px;
+        padding:22px;
+        margin-bottom:18px;
+        box-shadow:0 4px 12px rgba(0,0,0,.03);
+    }
 
-    <div class="page-wrap">
+    .page-title{
+        font-size:24px;
+        font-weight:800;
+        margin:0 0 6px 0;
+        color:#1f2937;
+    }
 
-        <div class="card">
-            <div class="title">Stock (Internal)</div>
+    .page-subtitle{
+        color:#6b7280;
+        margin-bottom:18px;
+    }
+
+    .form-control{
+        border-radius:10px;
+        height:42px;
+        box-shadow:none !important;
+    }
+
+    .btn-main{
+        background:#2f6fab;
+        color:#fff;
+        border:none;
+        height:42px;
+        border-radius:10px;
+        padding:0 22px;
+        font-weight:600;
+    }
+
+    .btn-main:hover{ color:#fff; opacity:.95; }
+
+    .mode-pill{
+        display:inline-block;
+        min-width:28px;
+        text-align:center;
+        padding:4px 9px;
+        border-radius:999px;
+        font-size:12px;
+        font-weight:700;
+    }
+
+    .mode-s { background:#e8f7ec; color:#2e7d32; }
+    .mode-a { background:#e8f1ff; color:#1565c0; }
+    .mode-n { background:#fff5db; color:#9a6b00; }
+
+    .qty-ok{ color:#0b7a35; font-weight:800; }
+    .qty-zero{ color:#111827; font-weight:800; }
+    .qty-neg{ color:#c62828; font-weight:800; }
+
+    .btn-xs2{
+        padding:4px 10px;
+        border:none;
+        border-radius:6px;
+        color:#fff !important;
+        font-size:12px;
+        text-decoration:none !important;
+        display:inline-block;
+        margin-right:4px;
+    }
+
+    .btn-receive{ background:#4caf50; }
+    .btn-adjust{ background:#f0ad4e; }
+    .btn-transfer{ background:#5bc0de; }
+
+    .small-note{
+        color:#6b7280;
+        font-size:12px;
+        margin-top:8px;
+    }
+
+    .table > thead > tr > th{
+        background:#fafafa;
+        border-bottom:1px solid #ddd;
+        font-weight:700;
+    }
+
+    .toolbar-top{
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:10px;
+        flex-wrap:wrap;
+        margin-bottom:12px;
+    }
+
+    .muted-count{
+        color:#6b7280;
+        font-size:13px;
+    }
+
+    .msg-ok{
+        background:#ecfdf3;
+        border:1px solid #bbf7d0;
+        color:#166534;
+        padding:10px 12px;
+        border-radius:10px;
+        margin-bottom:12px;
+    }
+
+    .msg-err{
+        background:#fef2f2;
+        border:1px solid #fecaca;
+        color:#991b1b;
+        padding:10px 12px;
+        border-radius:10px;
+        margin-bottom:12px;
+    }
+
+    .op-panel{
+        background:#fafafa;
+        border:1px dashed #d7dce2;
+        border-radius:14px;
+        padding:16px;
+        margin-top:16px;
+    }
+
+    .op-title{
+        font-size:16px;
+        font-weight:700;
+        color:#1f2937;
+        margin-bottom:14px;
+    }
+
+    .hidden-field{
+        display:none;
+    }
+</style>
+
+<div class="page-wrap">
+
+    <div class="card-box">
+        <div class="page-title">Stock Management</div>
+        <div class="page-subtitle">
+            Sized rings size bazlı görünür. Adjustable ve normal ürünler tek satır olarak yönetilir.
+        </div>
+
+        <asp:Literal ID="litMessage" runat="server" />
+
+        <div class="row">
+            <div class="col-md-3">
+                <label>SKU contains</label>
+                <asp:TextBox ID="txtSKU" runat="server" CssClass="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label>Stock Mode</label>
+                <asp:DropDownList ID="ddlStockMode" runat="server" CssClass="form-control">
+                    <asp:ListItem Text="All" Value="" />
+                    <asp:ListItem Text="Sized Ring (S)" Value="S" />
+                    <asp:ListItem Text="Adjustable (A)" Value="A" />
+                    <asp:ListItem Text="Normal (N)" Value="N" />
+                </asp:DropDownList>
+            </div>
+            <div class="col-md-3">
+                <label>Product Type</label>
+                <asp:DropDownList ID="ddlProductType" runat="server" CssClass="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label>Location</label>
+                <asp:DropDownList ID="ddlLocation" runat="server" CssClass="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label>&nbsp;</label><br />
+                <asp:Button ID="btnSearch" runat="server" Text="Search" CssClass="btn-main" OnClick="btnSearch_Click" />
+            </div>
+        </div>
+
+        <div class="small-note">
+            <span class="mode-pill mode-s">S</span> = size bazlı,
+            <span class="mode-pill mode-a">A</span> = adjustable,
+            <span class="mode-pill mode-n">N</span> = normal ürün.
+        </div>
+    </div>
+
+    <div class="card-box">
+        <div class="toolbar-top">
+            <asp:Literal ID="litCount" runat="server" />
+        </div>
+
+        <asp:GridView ID="gvStock" runat="server"
+            AutoGenerateColumns="false"
+            CssClass="table table-bordered table-hover"
+            GridLines="None"
+            DataKeyNames="VariantID,LocationID,ProductID,ProductSKU,VariantSKU,VariantName,LocationName"
+            OnRowCommand="gvStock_RowCommand">
+            <Columns>
+                <asp:BoundField DataField="ProductSKU" HeaderText="Product SKU" />
+                <asp:BoundField DataField="VariantSKU" HeaderText="Variant SKU" />
+                <asp:BoundField DataField="ProductID" HeaderText="ProductID" />
+                <asp:BoundField DataField="ProductType" HeaderText="Product Type" />
+                <asp:TemplateField HeaderText="Mode">
+                    <ItemTemplate>
+                        <%# GetModeBadge(Eval("StockMode")) %>
+                    </ItemTemplate>
+                </asp:TemplateField>
+                <asp:BoundField DataField="VariantName" HeaderText="Variant" />
+                <asp:BoundField DataField="LocationName" HeaderText="Location" />
+                <asp:TemplateField HeaderText="OnHand">
+                    <ItemTemplate>
+                        <span class="qty-zero"><%# Eval("OnHandQty", "{0:0.####}") %></span>
+                    </ItemTemplate>
+                </asp:TemplateField>
+                <asp:BoundField DataField="ReservedQty" HeaderText="Reserved" DataFormatString="{0:0.####}" />
+                <asp:TemplateField HeaderText="Available">
+                    <ItemTemplate>
+                        <%# GetAvailableHtml(Eval("AvailableQty")) %>
+                    </ItemTemplate>
+                </asp:TemplateField>
+                <asp:TemplateField HeaderText="Actions">
+                    <ItemTemplate>
+                        <asp:LinkButton ID="btnReceiveRow" runat="server"
+                            CommandName="OpenReceive"
+                            CommandArgument='<%# Container.DataItemIndex %>'
+                            CssClass="btn-xs2 btn-receive">Receive</asp:LinkButton>
+
+                        <asp:LinkButton ID="btnAdjustRow" runat="server"
+                            CommandName="OpenAdjust"
+                            CommandArgument='<%# Container.DataItemIndex %>'
+                            CssClass="btn-xs2 btn-adjust">Adjust</asp:LinkButton>
+
+                        <asp:LinkButton ID="btnTransferRow" runat="server"
+                            CommandName="OpenTransfer"
+                            CommandArgument='<%# Container.DataItemIndex %>'
+                            CssClass="btn-xs2 btn-transfer">Transfer</asp:LinkButton>
+                    </ItemTemplate>
+                </asp:TemplateField>
+            </Columns>
+        </asp:GridView>
+
+        <asp:Panel ID="pnlOperation" runat="server" CssClass="op-panel" Visible="false">
+            <div class="op-title">
+                <asp:Literal ID="litOpTitle" runat="server" />
+            </div>
+
+            <asp:HiddenField ID="hfAction" runat="server" />
+            <asp:HiddenField ID="hfVariantID" runat="server" />
+            <asp:HiddenField ID="hfLocationID" runat="server" />
 
             <div class="row">
                 <div class="col-md-3">
-                    <label>SKU contains</label>
-                    <asp:TextBox ID="txtSku" runat="server" CssClass="form-control" />
+                    <label>Product SKU</label>
+                    <asp:TextBox ID="txtOpProductSku" runat="server" CssClass="form-control" ReadOnly="true" />
                 </div>
-
-                <div class="col-md-2">
-                    <label>Stock Mode</label>
-                    <asp:DropDownList ID="ddlStockMode" runat="server" CssClass="form-control" />
-                </div>
-
                 <div class="col-md-3">
-                    <label>Product Type</label>
-                    <asp:DropDownList ID="ddlProductType" runat="server" CssClass="form-control" />
+                    <label>Variant</label>
+                    <asp:TextBox ID="txtOpVariant" runat="server" CssClass="form-control" ReadOnly="true" />
                 </div>
-
                 <div class="col-md-2">
-                    <label>Location</label>
-                    <asp:DropDownList ID="ddlLocationFilter" runat="server" CssClass="form-control" />
+                    <label>Current Location</label>
+                    <asp:TextBox ID="txtOpLocation" runat="server" CssClass="form-control" ReadOnly="true" />
                 </div>
-
-                <div class="col-md-2" style="padding-top:25px;">
-                    <asp:Button ID="btnSearch" runat="server" Text="Search" CssClass="btn btn-primary btn-block"
-                        OnClick="btnSearch_Click" />
-                </div>
-            </div>
-
-            <div class="help">
-                Sized rings (<span class="pill pill-s">S</span>) show rows by size.
-                Adjustable rings (<span class="pill pill-a">A</span>) show a single row (Adjustable).
-                Normal products (<span class="pill pill-n">N</span>) show a single row.
-                Inactive variants are hidden.
-            </div>
-        </div>
-
-        <div class="card">
-            <asp:Label ID="lblMsg" runat="server" CssClass="muted" />
-            <div class="table-responsive">
-                <asp:GridView ID="gv" runat="server" CssClass="table table-bordered table-hover grid"
-                    AutoGenerateColumns="False" OnRowCommand="gv_RowCommand">
-                    <Columns>
-                        <asp:BoundField DataField="SKU" HeaderText="SKU" />
-                        <asp:BoundField DataField="ProductID" HeaderText="ProductID" />
-                        <asp:BoundField DataField="ProductType" HeaderText="Product Type" />
-
-                        <asp:TemplateField HeaderText="Mode">
-                            <ItemTemplate>
-                                <span class='<%# ModeCss(Eval("StockMode")) %>'><%# Eval("StockMode") %></span>
-                            </ItemTemplate>
-                        </asp:TemplateField>
-
-                        <asp:BoundField DataField="VariantName" HeaderText="Variant (Size/Type)" />
-                        <asp:BoundField DataField="LocationName" HeaderText="Location" />
-
-                        <asp:TemplateField HeaderText="OnHand">
-                            <ItemTemplate>
-                                <span class="qty"><%# Eval("OnHandQty","{0:0.####}") %></span>
-                            </ItemTemplate>
-                        </asp:TemplateField>
-
-                        <asp:TemplateField HeaderText="Reserved">
-                            <ItemTemplate>
-                                <span class="muted"><%# Eval("ReservedQty","{0:0.####}") %></span>
-                            </ItemTemplate>
-                        </asp:TemplateField>
-
-                        <asp:TemplateField HeaderText="Available">
-                            <ItemTemplate>
-                                <span class='<%# (Convert.ToDecimal(Eval("AvailableQty"))<0) ? "qty bad" : "qty ok" %>'>
-                                    <%# Eval("AvailableQty","{0:0.####}") %>
-                                </span>
-                            </ItemTemplate>
-                        </asp:TemplateField>
-
-                        <asp:TemplateField HeaderText="Actions">
-                            <ItemTemplate>
-                                <asp:LinkButton ID="btnReceive" runat="server" CssClass="btn btn-success btn-xs"
-                                    CommandName="RECEIVE" CommandArgument='<%# Eval("VariantID") + "|" + Eval("LocationID") %>'>
-                                    Receive
-                                </asp:LinkButton>
-
-                                <asp:LinkButton ID="btnAdjust" runat="server" CssClass="btn btn-warning btn-xs"
-                                    CommandName="ADJUST" CommandArgument='<%# Eval("VariantID") + "|" + Eval("LocationID") %>'>
-                                    Adjust
-                                </asp:LinkButton>
-
-                                <asp:LinkButton ID="btnTransfer" runat="server" CssClass="btn btn-info btn-xs"
-                                    CommandName="TRANSFER" CommandArgument='<%# Eval("VariantID") + "|" + Eval("LocationID") %>'>
-                                    Transfer
-                                </asp:LinkButton>
-                            </ItemTemplate>
-                        </asp:TemplateField>
-                    </Columns>
-
-                    <EmptyDataTemplate>
-                        <div class="muted" style="padding:12px;">No records.</div>
-                    </EmptyDataTemplate>
-                </asp:GridView>
-            </div>
-        </div>
-
-        <!-- ===== Modal: Receive ===== -->
-        <div id="mdlReceive" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Receive Stock</h4>
-              </div>
-              <div class="modal-body">
-
-                <asp:HiddenField ID="hfReceiveVariantID" runat="server" />
-                <asp:HiddenField ID="hfReceiveLocationID" runat="server" />
-
-                <div class="form-group">
+                <div class="col-md-2">
                     <label>Qty</label>
-                    <asp:TextBox ID="txtReceiveQty" runat="server" CssClass="form-control" />
+                    <asp:TextBox ID="txtQty" runat="server" CssClass="form-control" Text="1" />
                 </div>
-
-                <div class="form-group">
-                    <label>Unit Cost (optional)</label>
-                    <asp:TextBox ID="txtReceiveUnitCost" runat="server" CssClass="form-control" />
+                <div class="col-md-2">
+                    <label>Currency</label>
+                    <asp:TextBox ID="txtCurrency" runat="server" CssClass="form-control" Text="PLN" />
                 </div>
-
-                <div class="form-group">
-                    <label>Currency (optional)</label>
-                    <asp:TextBox ID="txtReceiveCurrency" runat="server" CssClass="form-control" Text="USD" />
-                </div>
-
-                <div class="form-group">
-                    <label>RefNo (optional)</label>
-                    <asp:TextBox ID="txtReceiveRefNo" runat="server" CssClass="form-control" />
-                </div>
-
-                <div class="form-group">
-                    <label>Note</label>
-                    <asp:TextBox ID="txtReceiveNote" runat="server" CssClass="form-control" />
-                </div>
-
-              </div>
-              <div class="modal-footer">
-                <asp:Button ID="btnReceiveSave" runat="server" Text="Save" CssClass="btn btn-success"
-                    OnClick="btnReceiveSave_Click" />
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-              </div>
             </div>
-          </div>
-        </div>
 
-        <!-- ===== Modal: Adjust ===== -->
-        <div id="mdlAdjust" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Adjust Stock</h4>
-              </div>
-              <div class="modal-body">
-
-                <asp:HiddenField ID="hfAdjustVariantID" runat="server" />
-                <asp:HiddenField ID="hfAdjustLocationID" runat="server" />
-
-                <div class="form-group">
-                    <label>Qty Delta (use negative to decrease)</label>
-                    <asp:TextBox ID="txtAdjustDelta" runat="server" CssClass="form-control" />
+            <div class="row" style="margin-top:12px;">
+                <div class="col-md-2">
+                    <label>Unit Cost</label>
+                    <asp:TextBox ID="txtUnitCost" runat="server" CssClass="form-control" />
                 </div>
-
-                <div class="form-group">
+                <div class="col-md-3">
+                    <label>Ref No</label>
+                    <asp:TextBox ID="txtRefNo" runat="server" CssClass="form-control" />
+                </div>
+                <div class="col-md-4">
                     <label>Note</label>
-                    <asp:TextBox ID="txtAdjustNote" runat="server" CssClass="form-control" />
+                    <asp:TextBox ID="txtNote" runat="server" CssClass="form-control" />
                 </div>
-
-              </div>
-              <div class="modal-footer">
-                <asp:Button ID="btnAdjustSave" runat="server" Text="Save" CssClass="btn btn-warning"
-                    OnClick="btnAdjustSave_Click" />
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-              </div>
+                <div class="col-md-3">
+                    <label>Transfer To Location</label>
+                    <asp:DropDownList ID="ddlTransferLocation" runat="server" CssClass="form-control" />
+                </div>
             </div>
-          </div>
-        </div>
 
-        <!-- ===== Modal: Transfer ===== -->
-        <div id="mdlTransfer" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
-          <div class="modal-dialog">
-            <div class="modal-content">
-              <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Transfer Stock</h4>
-              </div>
-              <div class="modal-body">
-
-                <asp:HiddenField ID="hfTransferVariantID" runat="server" />
-                <asp:HiddenField ID="hfTransferFromLocationID" runat="server" />
-
-                <div class="form-group">
-                    <label>To Location</label>
-                    <asp:DropDownList ID="ddlTransferToLocation" runat="server" CssClass="form-control" />
-                </div>
-
-                <div class="form-group">
-                    <label>Qty</label>
-                    <asp:TextBox ID="txtTransferQty" runat="server" CssClass="form-control" />
-                </div>
-
-                <div class="form-group">
-                    <label>Note</label>
-                    <asp:TextBox ID="txtTransferNote" runat="server" CssClass="form-control" />
-                </div>
-
-              </div>
-              <div class="modal-footer">
-                <asp:Button ID="btnTransferSave" runat="server" Text="Save" CssClass="btn btn-info"
-                    OnClick="btnTransferSave_Click" />
-                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-              </div>
+            <div style="margin-top:14px;">
+                <asp:Button ID="btnSaveOperation" runat="server" Text="Save" CssClass="btn-main" OnClick="btnSaveOperation_Click" />
+                <asp:Button ID="btnCancelOperation" runat="server" Text="Cancel" CssClass="btn btn-default" OnClick="btnCancelOperation_Click" CausesValidation="false" />
             </div>
-          </div>
-        </div>
-
+        </asp:Panel>
     </div>
 
-</asp:Content>
-
-<asp:Content ID="cScripts" ContentPlaceHolderID="ScriptsContent" runat="server">
-    <script>
-        function openModal(id) { $('#' + id).modal('show'); }
-    </script>
+</div>
 </asp:Content>

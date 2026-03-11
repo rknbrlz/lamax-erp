@@ -16,11 +16,11 @@ namespace Feniks
             }
         }
 
-        public bool IsActive(string pathPrefix)
+        protected bool IsActive(string virtualPath)
         {
-            var url = (Request?.Url?.AbsolutePath ?? "").ToLowerInvariant();
-            pathPrefix = (pathPrefix ?? "").ToLowerInvariant();
-            return url.StartsWith(pathPrefix);
+            var current = Request.AppRelativeCurrentExecutionFilePath ?? "";
+            current = current.Replace("~", "").ToLowerInvariant();
+            return current == virtualPath.ToLowerInvariant();
         }
 
         private void BindTopbarUser()

@@ -15,13 +15,22 @@ namespace Feniks.Administrator
     {
 
         /// <summary>
-        /// txtSku control.
+        /// litMessage control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtSku;
+        protected global::System.Web.UI.WebControls.Literal litMessage;
+
+        /// <summary>
+        /// txtSKU control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtSKU;
 
         /// <summary>
         /// ddlStockMode control.
@@ -42,13 +51,13 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.DropDownList ddlProductType;
 
         /// <summary>
-        /// ddlLocationFilter control.
+        /// ddlLocation control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList ddlLocationFilter;
+        protected global::System.Web.UI.WebControls.DropDownList ddlLocation;
 
         /// <summary>
         /// btnSearch control.
@@ -60,192 +69,165 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.Button btnSearch;
 
         /// <summary>
-        /// lblMsg control.
+        /// litCount control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Label lblMsg;
+        protected global::System.Web.UI.WebControls.Literal litCount;
 
         /// <summary>
-        /// gv control.
+        /// gvStock control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.GridView gv;
+        protected global::System.Web.UI.WebControls.GridView gvStock;
 
         /// <summary>
-        /// hfReceiveVariantID control.
+        /// pnlOperation control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField hfReceiveVariantID;
+        protected global::System.Web.UI.WebControls.Panel pnlOperation;
 
         /// <summary>
-        /// hfReceiveLocationID control.
+        /// litOpTitle control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField hfReceiveLocationID;
+        protected global::System.Web.UI.WebControls.Literal litOpTitle;
 
         /// <summary>
-        /// txtReceiveQty control.
+        /// hfAction control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtReceiveQty;
+        protected global::System.Web.UI.WebControls.HiddenField hfAction;
 
         /// <summary>
-        /// txtReceiveUnitCost control.
+        /// hfVariantID control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtReceiveUnitCost;
+        protected global::System.Web.UI.WebControls.HiddenField hfVariantID;
 
         /// <summary>
-        /// txtReceiveCurrency control.
+        /// hfLocationID control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtReceiveCurrency;
+        protected global::System.Web.UI.WebControls.HiddenField hfLocationID;
 
         /// <summary>
-        /// txtReceiveRefNo control.
+        /// txtOpProductSku control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtReceiveRefNo;
+        protected global::System.Web.UI.WebControls.TextBox txtOpProductSku;
 
         /// <summary>
-        /// txtReceiveNote control.
+        /// txtOpVariant control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtReceiveNote;
+        protected global::System.Web.UI.WebControls.TextBox txtOpVariant;
 
         /// <summary>
-        /// btnReceiveSave control.
+        /// txtOpLocation control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnReceiveSave;
+        protected global::System.Web.UI.WebControls.TextBox txtOpLocation;
 
         /// <summary>
-        /// hfAdjustVariantID control.
+        /// txtQty control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField hfAdjustVariantID;
+        protected global::System.Web.UI.WebControls.TextBox txtQty;
 
         /// <summary>
-        /// hfAdjustLocationID control.
+        /// txtCurrency control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField hfAdjustLocationID;
+        protected global::System.Web.UI.WebControls.TextBox txtCurrency;
 
         /// <summary>
-        /// txtAdjustDelta control.
+        /// txtUnitCost control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtAdjustDelta;
+        protected global::System.Web.UI.WebControls.TextBox txtUnitCost;
 
         /// <summary>
-        /// txtAdjustNote control.
+        /// txtRefNo control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtAdjustNote;
+        protected global::System.Web.UI.WebControls.TextBox txtRefNo;
 
         /// <summary>
-        /// btnAdjustSave control.
+        /// txtNote control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnAdjustSave;
+        protected global::System.Web.UI.WebControls.TextBox txtNote;
 
         /// <summary>
-        /// hfTransferVariantID control.
+        /// ddlTransferLocation control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField hfTransferVariantID;
+        protected global::System.Web.UI.WebControls.DropDownList ddlTransferLocation;
 
         /// <summary>
-        /// hfTransferFromLocationID control.
+        /// btnSaveOperation control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField hfTransferFromLocationID;
+        protected global::System.Web.UI.WebControls.Button btnSaveOperation;
 
         /// <summary>
-        /// ddlTransferToLocation control.
+        /// btnCancelOperation control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.DropDownList ddlTransferToLocation;
-
-        /// <summary>
-        /// txtTransferQty control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtTransferQty;
-
-        /// <summary>
-        /// txtTransferNote control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.TextBox txtTransferNote;
-
-        /// <summary>
-        /// btnTransferSave control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnTransferSave;
+        protected global::System.Web.UI.WebControls.Button btnCancelOperation;
     }
 }
