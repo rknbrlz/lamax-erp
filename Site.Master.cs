@@ -61,11 +61,31 @@ namespace Feniks
             }
 
             // Bildirim placeholder
-            litNotifCount.Text = "1";
-            phNotifBadge.Visible = true;
+            int notifCount = GetPendingNotificationCount();
+            litNotifCount.Text = notifCount.ToString();
+            phNotifBadge.Visible = notifCount > 0;
 
         }
-
+        private int GetPendingNotificationCount()
+        {
+            try
+            {
+                using (var con = new SqlConnection(ConnStr))
+                using (var cmd = new SqlCommand(@"
+            SELECT COUNT(*)
+            FROM dbo.T_AccessRequest
+            WHERE Status = 'Pending'
+        ", con))
+                {
+                    con.Open();
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
+            }
+            catch
+            {
+                return 0;
+            }
+        }
         private UserTopbarDto GetUserTopbar(int? userId, string username)
         {
             var dto = new UserTopbarDto
