@@ -419,6 +419,13 @@
                         <span class="rail-label">Product AI</span>
                     </a>
 
+                    <a href="/Administrator/ProductList.aspx"
+                       class='rail-link <%= IsActive("/administrator/productlist.aspx") ? "active" : "" %>'
+                       title="Product List">
+                        <span class="glyphicon glyphicon-barcode"></span>
+                        <span class="rail-label">Product List</span>
+                    </a>
+
                     <a href="/Administrator/ProductImages.aspx"
                        class='rail-link <%= IsActive("/administrator/productimages.aspx") ? "active" : "" %>'
                        title="Images">

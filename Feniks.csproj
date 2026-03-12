@@ -162,7 +162,9 @@
     <Content Include="Administrator\OrderUpdate.aspx" />
     <Content Include="Administrator\PhotoAddforProduct.aspx" />
     <Content Include="Administrator\ProductAI.aspx" />
+    <Content Include="Administrator\ProductEdit.aspx" />
     <Content Include="Administrator\ProductImages.aspx" />
+    <Content Include="Administrator\ProductList.aspx" />
     <Content Include="Administrator\Products.aspx" />
     <Content Include="Administrator\NewOrder.aspx" />
     <Content Include="Administrator\Profile.aspx" />
@@ -398,6 +400,20 @@
     </Compile>
     <Compile Include="Administrator\ProductAI.aspx.designer.cs">
       <DependentUpon>ProductAI.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\ProductEdit.aspx.cs">
+      <DependentUpon>ProductEdit.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\ProductEdit.aspx.designer.cs">
+      <DependentUpon>ProductEdit.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\ProductList.aspx.cs">
+      <DependentUpon>ProductList.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\ProductList.aspx.designer.cs">
+      <DependentUpon>ProductList.aspx</DependentUpon>
     </Compile>
     <Compile Include="Administrator\StockHistory.aspx.cs">
       <DependentUpon>StockHistory.aspx</DependentUpon>
