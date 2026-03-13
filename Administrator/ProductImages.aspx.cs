@@ -12,15 +12,14 @@ using System.Web;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using DrawingImage = System.Drawing.Image;
+using Feniks.Services;
 
 namespace Feniks.Administrator
 {
     public partial class ProductImages : Page
     {
-        private const int MaxUploadBytesPerFile = 10 * 1024 * 1024; // 10 MB
-        private const int MaxLongSide = 2000;
-        private const long JpegQuality = 82L;
-        private const int MainCanvasSize = 2000;
+        private const int MaxUploadBytesPerFile = 10 * 1024 * 1024;
+        private const long JpegQuality = 84L;
 
         private string ConnectionString
         {
@@ -45,20 +44,20 @@ namespace Feniks.Administrator
 
         protected void btnLoad_Click(object sender, EventArgs e)
         {
+            ClearMessage();
             BindImages();
         }
 
         protected void btnUpload_Click(object sender, EventArgs e)
         {
-            lblMsg.Text = "";
-            lblMsg.CssClass = "";
+            ClearMessage();
 
             try
             {
                 string sku = txtSKU.Text.Trim();
                 if (string.IsNullOrWhiteSpace(sku))
                 {
-                    ShowError("SKU giriniz.");
+                    ShowError("Please enter a SKU.");
                     return;
                 }
 
@@ -69,19 +68,28 @@ namespace Feniks.Administrator
                 {
                     HttpPostedFile file = files[i];
                     if (file == null || file.ContentLength <= 0) continue;
-
                     if (!string.IsNullOrWhiteSpace(file.FileName))
                         imageFiles.Add(file);
                 }
 
                 if (imageFiles.Count == 0)
                 {
-                    ShowError("Lütfen en az bir görsel seçiniz.");
+                    ShowError("Please select at least one image.");
                     return;
                 }
 
                 int nextSortOrder = GetInitialSortOrder(sku);
                 bool firstShouldBePrimary = chkIsPrimary.Checked;
+                bool autoWhiteBg = chkAutoWhiteBg.Checked;
+                bool centerSubject = chkCenterSubject.Checked;
+                bool softShadow = chkSoftShadow.Checked;
+                bool useAiBgRemoval = chkUseAiBgRemoval != null && chkUseAiBgRemoval.Checked;
+
+                string preset = (ddlPreset.SelectedValue ?? "AUTO").Trim().ToUpperInvariant();
+                string imageRole = string.IsNullOrWhiteSpace(ddlImageRole.SelectedValue)
+                    ? "GALLERY"
+                    : ddlImageRole.SelectedValue.Trim().ToUpperInvariant();
+
                 int insertedCount = 0;
                 List<string> info = new List<string>();
 
@@ -92,51 +100,69 @@ namespace Feniks.Administrator
 
                     if (!IsAllowedExtension(ext))
                     {
-                        info.Add(originalFileName + ": uzantı geçersiz, atlandı.");
-                        continue;
-                    }
-
-                    if (postedFile.ContentLength <= 0)
-                    {
-                        info.Add(originalFileName + ": boş dosya, atlandı.");
+                        info.Add(originalFileName + ": skipped, invalid extension.");
                         continue;
                     }
 
                     if (postedFile.ContentLength > MaxUploadBytesPerFile)
                     {
-                        info.Add(originalFileName + ": 10 MB üstü, atlandı.");
+                        info.Add(originalFileName + ": skipped, file is larger than 10 MB.");
                         continue;
                     }
 
                     byte[] originalData = ReadFully(postedFile.InputStream);
                     if (originalData == null || originalData.Length == 0)
                     {
-                        info.Add(originalFileName + ": dosya okunamadı, atlandı.");
+                        info.Add(originalFileName + ": skipped, file could not be read.");
                         continue;
                     }
 
-                    string imageRole = string.IsNullOrWhiteSpace(ddlImageRole.SelectedValue)
-                        ? "GALLERY"
-                        : ddlImageRole.SelectedValue.Trim().ToUpperInvariant();
+                    byte[] baseInputData = originalData;
+                    string providerResultType = null;
 
-                    bool isMainLike = imageRole == "MAIN";
-
-                    byte[] finalData = originalData;
-                    string finalContentType = GetSafeContentType(ext, postedFile.ContentType);
-                    string finalFileName = originalFileName;
-
-                    if (ext == ".jpg" || ext == ".jpeg" || ext == ".png")
+                    if (useAiBgRemoval)
                     {
-                        finalData = isMainLike
-                            ? OptimizeToSquareCanvas(originalData, ext, MainCanvasSize, JpegQuality)
-                            : OptimizeByLongSide(originalData, ext, MaxLongSide, JpegQuality);
-
-                        finalContentType = (ext == ".png") ? "image/png" : "image/jpeg";
+                        try
+                        {
+                            baseInputData = BackgroundRemovalService.RemoveBackground(
+                                originalData,
+                                originalFileName,
+                                out providerResultType
+                            );
+                        }
+                        catch (Exception apiEx)
+                        {
+                            info.Add(originalFileName + ": AI background removal failed, local processing used (" + apiEx.Message + ")");
+                            baseInputData = originalData;
+                        }
                     }
-                    else if (ext == ".webp")
+
+                    byte[] finalData;
+                    string finalContentType;
+                    string finalFileName;
+
+                    if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" || providerResultType == "image/png")
                     {
-                        finalData = originalData;
-                        finalContentType = "image/webp";
+                        finalData = ProcessMarketplaceImage(
+                            baseInputData,
+                            imageRole,
+                            preset,
+                            autoWhiteBg,
+                            centerSubject,
+                            softShadow
+                        );
+
+                        finalContentType = "image/jpeg";
+                        finalFileName = Path.GetFileNameWithoutExtension(originalFileName) + ".jpg";
+                    }
+                    else
+                    {
+                        finalData = baseInputData;
+                        finalContentType = string.IsNullOrWhiteSpace(providerResultType)
+                            ? GetSafeContentType(ext, postedFile.ContentType)
+                            : providerResultType;
+
+                        finalFileName = originalFileName;
                     }
 
                     bool isPrimaryForThisImage = insertedCount == 0 && firstShouldBePrimary;
@@ -161,30 +187,93 @@ namespace Feniks.Administrator
 
                 if (insertedCount == 0)
                 {
-                    ShowError("Hiçbir görsel yüklenemedi. " + string.Join(" | ", info));
+                    ShowError("No images were uploaded. " + string.Join(" | ", info));
                     return;
                 }
 
-                ShowSuccess(insertedCount + " görsel yüklendi. " + string.Join(" | ", info));
+                ShowSuccess(insertedCount + " image(s) uploaded. " + string.Join(" | ", info));
                 BindImages();
             }
             catch (Exception ex)
             {
-                ShowError("Hata: " + ex.Message);
+                ShowError("Error: " + ex.Message);
+            }
+        }
+
+        protected void btnSaveOrder_Click(object sender, EventArgs e)
+        {
+            ClearMessage();
+
+            try
+            {
+                string raw = hfSortOrder.Value;
+
+                if (string.IsNullOrWhiteSpace(raw))
+                {
+                    string sku = txtSKU.Text.Trim();
+                    if (string.IsNullOrWhiteSpace(sku))
+                    {
+                        ShowError("Please enter a SKU.");
+                        return;
+                    }
+
+                    raw = BuildCurrentSortOrderFromDatabase(sku);
+                }
+
+                if (string.IsNullOrWhiteSpace(raw))
+                {
+                    ShowError("No images found to save.");
+                    return;
+                }
+
+                string[] pairs = raw.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                int updated = 0;
+
+                using (SqlConnection con = new SqlConnection(ConnectionString))
+                {
+                    con.Open();
+
+                    foreach (string pair in pairs)
+                    {
+                        string[] parts = pair.Split(':');
+                        if (parts.Length != 2) continue;
+
+                        int imageId;
+                        int sortOrder;
+
+                        if (!int.TryParse(parts[0], out imageId)) continue;
+                        if (!int.TryParse(parts[1], out sortOrder)) continue;
+
+                        using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImage_UpdateSort", con))
+                        {
+                            cmd.CommandType = CommandType.StoredProcedure;
+                            cmd.Parameters.AddWithValue("@ProductImageID", imageId);
+                            cmd.Parameters.AddWithValue("@SortOrder", sortOrder);
+                            cmd.ExecuteNonQuery();
+                            updated++;
+                        }
+                    }
+                }
+
+                ShowSuccess(updated + " image order(s) saved.");
+                BindImages();
+            }
+            catch (Exception ex)
+            {
+                ShowError("Error: " + ex.Message);
             }
         }
 
         protected void rptImages_ItemCommand(object source, RepeaterCommandEventArgs e)
         {
-            lblMsg.Text = "";
-            lblMsg.CssClass = "";
+            ClearMessage();
 
             try
             {
                 int imageId;
                 if (!int.TryParse(Convert.ToString(e.CommandArgument), out imageId))
                 {
-                    ShowError("Geçersiz görsel ID.");
+                    ShowError("Invalid image id.");
                     return;
                 }
 
@@ -199,7 +288,8 @@ namespace Feniks.Administrator
                         cmd.ExecuteNonQuery();
                     }
 
-                    ShowSuccess("Primary görsel güncellendi.");
+                    NormalizeSortAfterDeleteOrPrimary(txtSKU.Text.Trim());
+                    ShowSuccess("Primary image updated.");
                     BindImages();
                 }
                 else if (e.CommandName == "deleteimg")
@@ -213,13 +303,14 @@ namespace Feniks.Administrator
                         cmd.ExecuteNonQuery();
                     }
 
-                    ShowSuccess("Görsel silindi.");
+                    NormalizeSortAfterDeleteOrPrimary(txtSKU.Text.Trim());
+                    ShowSuccess("Image deleted.");
                     BindImages();
                 }
             }
             catch (Exception ex)
             {
-                ShowError("Hata: " + ex.Message);
+                ShowError("Error: " + ex.Message);
             }
         }
 
@@ -269,6 +360,7 @@ namespace Feniks.Administrator
 
                 object result = cmd.ExecuteScalar();
                 int next;
+
                 if (result != null && int.TryParse(result.ToString(), out next) && next > 0)
                     return next;
             }
@@ -276,14 +368,94 @@ namespace Feniks.Administrator
             return 1;
         }
 
-        private void InsertImage(string sku, byte[] imageData, string fileName, string contentType,
-            int fileSizeBytes, int sortOrder, bool isPrimary, string marketplace, string imageRole, string createdBy)
+        private string BuildCurrentSortOrderFromDatabase(string sku)
+        {
+            List<string> parts = new List<string>();
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand(@"
+                SELECT ProductImageID, SortOrder
+                FROM dbo.T_ProductImage
+                WHERE SKU = @SKU
+                ORDER BY SortOrder, ProductImageID", con))
+            {
+                cmd.Parameters.AddWithValue("@SKU", sku);
+                con.Open();
+
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    int index = 1;
+                    while (dr.Read())
+                    {
+                        int imageId = Convert.ToInt32(dr["ProductImageID"]);
+                        parts.Add(imageId + ":" + index);
+                        index++;
+                    }
+                }
+            }
+
+            return string.Join(",", parts);
+        }
+
+        private void NormalizeSortAfterDeleteOrPrimary(string sku)
+        {
+            if (string.IsNullOrWhiteSpace(sku))
+                return;
+
+            List<int> ids = new List<int>();
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand(@"
+                SELECT ProductImageID
+                FROM dbo.T_ProductImage
+                WHERE SKU = @SKU
+                ORDER BY IsPrimary DESC, SortOrder, ProductImageID", con))
+            {
+                cmd.Parameters.AddWithValue("@SKU", sku);
+                con.Open();
+
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        ids.Add(Convert.ToInt32(dr["ProductImageID"]));
+                    }
+                }
+            }
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            {
+                con.Open();
+
+                for (int i = 0; i < ids.Count; i++)
+                {
+                    using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImage_UpdateSort", con))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@ProductImageID", ids[i]);
+                        cmd.Parameters.AddWithValue("@SortOrder", i + 1);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
+        private void InsertImage(
+            string sku,
+            byte[] imageData,
+            string fileName,
+            string contentType,
+            int fileSizeBytes,
+            int sortOrder,
+            bool isPrimary,
+            string marketplace,
+            string imageRole,
+            string createdBy)
         {
             using (SqlConnection con = new SqlConnection(ConnectionString))
             using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImage_Insert", con))
             {
                 cmd.CommandType = CommandType.StoredProcedure;
-
                 cmd.Parameters.AddWithValue("@SKU", sku);
                 cmd.Parameters.AddWithValue("@ImageData", imageData);
                 cmd.Parameters.AddWithValue("@FileName", fileName);
@@ -300,102 +472,280 @@ namespace Feniks.Administrator
             }
         }
 
-        private static bool IsAllowedExtension(string ext)
-        {
-            string[] allowed = { ".jpg", ".jpeg", ".png", ".webp" };
-            return allowed.Contains(ext);
-        }
-
-        private static byte[] ReadFully(Stream input)
-        {
-            if (input == null) return null;
-
-            using (MemoryStream ms = new MemoryStream())
-            {
-                input.CopyTo(ms);
-                return ms.ToArray();
-            }
-        }
-
-        private static byte[] OptimizeByLongSide(byte[] inputBytes, string ext, int maxLongSide, long jpegQuality)
+        private static byte[] ProcessMarketplaceImage(
+            byte[] inputBytes,
+            string imageRole,
+            string preset,
+            bool autoWhiteBg,
+            bool centerSubject,
+            bool softShadow)
         {
             using (MemoryStream inputStream = new MemoryStream(inputBytes))
             using (DrawingImage originalImage = DrawingImage.FromStream(inputStream))
             {
                 FixOrientation(originalImage);
 
-                Size newSize = GetScaledSize(originalImage.Width, originalImage.Height, maxLongSide);
-
-                using (Bitmap resizedBitmap = new Bitmap(newSize.Width, newSize.Height))
+                Bitmap sourceBitmap = new Bitmap(originalImage);
+                try
                 {
-                    SafeSetResolution(resizedBitmap, originalImage.HorizontalResolution, originalImage.VerticalResolution);
-
-                    using (Graphics g = Graphics.FromImage(resizedBitmap))
+                    Bitmap working = new Bitmap(sourceBitmap);
+                    try
                     {
-                        g.CompositingMode = CompositingMode.SourceCopy;
-                        g.CompositingQuality = CompositingQuality.HighQuality;
-                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        g.SmoothingMode = SmoothingMode.HighQuality;
-                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        if (autoWhiteBg)
+                        {
+                            CleanLightBackgroundFromEdges(working, 242, 28);
+                            ReplaceNearWhitePixels(working, 245, 18);
+                        }
 
-                        g.Clear(Color.White);
-                        g.DrawImage(originalImage, 0, 0, newSize.Width, newSize.Height);
+                        Rectangle subjectBounds = GetSubjectBounds(working, 248, 10);
+                        if (subjectBounds.Width < 5 || subjectBounds.Height < 5)
+                        {
+                            subjectBounds = new Rectangle(0, 0, working.Width, working.Height);
+                        }
+
+                        Bitmap cropped = CropBitmap(working, subjectBounds);
+                        try
+                        {
+                            CanvasOptions options = ResolveCanvasOptions(imageRole, preset);
+
+                            Bitmap finalBitmap = RenderStudioCanvas(
+                                cropped,
+                                options,
+                                softShadow,
+                                centerSubject
+                            );
+
+                            try
+                            {
+                                using (MemoryStream output = new MemoryStream())
+                                {
+                                    SaveAsJpeg(finalBitmap, output, JpegQuality);
+                                    return output.ToArray();
+                                }
+                            }
+                            finally
+                            {
+                                finalBitmap.Dispose();
+                            }
+                        }
+                        finally
+                        {
+                            cropped.Dispose();
+                        }
                     }
-
-                    using (MemoryStream outputStream = new MemoryStream())
+                    finally
                     {
-                        SaveByExtension(resizedBitmap, outputStream, ext, jpegQuality);
-                        return outputStream.ToArray();
+                        working.Dispose();
                     }
+                }
+                finally
+                {
+                    sourceBitmap.Dispose();
                 }
             }
         }
 
-        private static byte[] OptimizeToSquareCanvas(byte[] inputBytes, string ext, int canvasSize, long jpegQuality)
+        private static CanvasOptions ResolveCanvasOptions(string imageRole, string preset)
         {
-            using (MemoryStream inputStream = new MemoryStream(inputBytes))
-            using (DrawingImage originalImage = DrawingImage.FromStream(inputStream))
+            string role = (imageRole ?? "").Trim().ToUpperInvariant();
+            string p = (preset ?? "AUTO").Trim().ToUpperInvariant();
+
+            if (p == "AMAZON")
             {
-                FixOrientation(originalImage);
-
-                Size fitSize = GetScaledSize(originalImage.Width, originalImage.Height, canvasSize);
-                int x = (canvasSize - fitSize.Width) / 2;
-                int y = (canvasSize - fitSize.Height) / 2;
-
-                using (Bitmap canvas = new Bitmap(canvasSize, canvasSize))
+                return new CanvasOptions
                 {
-                    SafeSetResolution(canvas, originalImage.HorizontalResolution, originalImage.VerticalResolution);
+                    CanvasWidth = 2000,
+                    CanvasHeight = 2000,
+                    SubjectFillRatio = role == "MAIN" ? 0.88 : 0.80,
+                    ForceSquare = true
+                };
+            }
 
-                    using (Graphics g = Graphics.FromImage(canvas))
-                    {
-                        g.CompositingMode = CompositingMode.SourceCopy;
-                        g.CompositingQuality = CompositingQuality.HighQuality;
-                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
-                        g.SmoothingMode = SmoothingMode.HighQuality;
-                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+            if (p == "ETSY")
+            {
+                return new CanvasOptions
+                {
+                    CanvasWidth = 2000,
+                    CanvasHeight = 2000,
+                    SubjectFillRatio = role == "MAIN" ? 0.82 : 0.76,
+                    ForceSquare = true
+                };
+            }
 
-                        g.Clear(Color.White);
-                        g.DrawImage(originalImage, x, y, fitSize.Width, fitSize.Height);
-                    }
+            if (p == "WEBSITE")
+            {
+                return new CanvasOptions
+                {
+                    CanvasWidth = 1800,
+                    CanvasHeight = 1800,
+                    SubjectFillRatio = 0.78,
+                    ForceSquare = true
+                };
+            }
 
-                    using (MemoryStream outputStream = new MemoryStream())
-                    {
-                        SaveByExtension(canvas, outputStream, ext, jpegQuality);
-                        return outputStream.ToArray();
-                    }
+            if (p == "SQUARE")
+            {
+                return new CanvasOptions
+                {
+                    CanvasWidth = 2000,
+                    CanvasHeight = 2000,
+                    SubjectFillRatio = 0.84,
+                    ForceSquare = true
+                };
+            }
+
+            if (role == "MAIN")
+            {
+                return new CanvasOptions
+                {
+                    CanvasWidth = 2000,
+                    CanvasHeight = 2000,
+                    SubjectFillRatio = 0.86,
+                    ForceSquare = true
+                };
+            }
+
+            return new CanvasOptions
+            {
+                CanvasWidth = 2000,
+                CanvasHeight = 2000,
+                SubjectFillRatio = 0.78,
+                ForceSquare = true
+            };
+        }
+
+        private static Bitmap RenderStudioCanvas(Bitmap subjectBitmap, CanvasOptions options, bool addShadow, bool centerSubject)
+        {
+            int canvasW = options.CanvasWidth;
+            int canvasH = options.CanvasHeight;
+
+            Bitmap canvas = new Bitmap(canvasW, canvasH);
+            SafeSetResolution(canvas, 96, 96);
+
+            using (Graphics g = Graphics.FromImage(canvas))
+            {
+                g.Clear(Color.White);
+                g.CompositingQuality = CompositingQuality.HighQuality;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                Size scaled = FitToCanvas(subjectBitmap.Width, subjectBitmap.Height, canvasW, canvasH, options.SubjectFillRatio);
+
+                int x = centerSubject ? (canvasW - scaled.Width) / 2 : 0;
+                int y = centerSubject ? (canvasH - scaled.Height) / 2 : 0;
+
+                if (addShadow)
+                {
+                    DrawSoftShadow(
+                        g,
+                        x + (scaled.Width / 10),
+                        y + scaled.Height - Math.Max(14, scaled.Height / 24),
+                        (int)(scaled.Width * 0.68),
+                        Math.Max(14, scaled.Height / 12)
+                    );
+                }
+
+                g.DrawImage(subjectBitmap, new Rectangle(x, y, scaled.Width, scaled.Height));
+            }
+
+            return canvas;
+        }
+
+        private static Size FitToCanvas(int sourceWidth, int sourceHeight, int canvasWidth, int canvasHeight, double fillRatio)
+        {
+            double maxW = canvasWidth * fillRatio;
+            double maxH = canvasHeight * fillRatio;
+
+            double ratioX = maxW / sourceWidth;
+            double ratioY = maxH / sourceHeight;
+            double ratio = Math.Min(ratioX, ratioY);
+
+            int newW = Math.Max(1, (int)Math.Round(sourceWidth * ratio));
+            int newH = Math.Max(1, (int)Math.Round(sourceHeight * ratio));
+
+            return new Size(newW, newH);
+        }
+
+        private static void DrawSoftShadow(Graphics g, int x, int y, int width, int height)
+        {
+            for (int i = 18; i >= 1; i--)
+            {
+                int alpha = Math.Max(1, i);
+                using (SolidBrush brush = new SolidBrush(Color.FromArgb(alpha, 0, 0, 0)))
+                {
+                    Rectangle r = new Rectangle(
+                        x - i,
+                        y - (i / 2),
+                        width + (i * 2),
+                        height + i
+                    );
+
+                    g.FillEllipse(brush, r);
                 }
             }
         }
 
-        private static void SaveByExtension(Bitmap bitmap, Stream output, string ext, long jpegQuality)
+        private static Rectangle GetSubjectBounds(Bitmap bitmap, byte whiteThreshold, int tolerance)
         {
-            if (ext == ".png")
+            int minX = bitmap.Width;
+            int minY = bitmap.Height;
+            int maxX = -1;
+            int maxY = -1;
+
+            for (int y = 0; y < bitmap.Height; y++)
             {
-                bitmap.Save(output, ImageFormat.Png);
-                return;
+                for (int x = 0; x < bitmap.Width; x++)
+                {
+                    Color c = bitmap.GetPixel(x, y);
+                    if (!LooksLikeWhite(c, whiteThreshold, tolerance))
+                    {
+                        if (x < minX) minX = x;
+                        if (y < minY) minY = y;
+                        if (x > maxX) maxX = x;
+                        if (y > maxY) maxY = y;
+                    }
+                }
             }
 
-            ImageCodecInfo jpgCodec = GetEncoder(ImageFormat.Jpeg);
+            if (maxX < minX || maxY < minY)
+                return Rectangle.Empty;
+
+            int padX = Math.Max(8, (maxX - minX) / 20);
+            int padY = Math.Max(8, (maxY - minY) / 20);
+
+            minX = Math.Max(0, minX - padX);
+            minY = Math.Max(0, minY - padY);
+            maxX = Math.Min(bitmap.Width - 1, maxX + padX);
+            maxY = Math.Min(bitmap.Height - 1, maxY + padY);
+
+            return Rectangle.FromLTRB(minX, minY, maxX + 1, maxY + 1);
+        }
+
+        private static Bitmap CropBitmap(Bitmap source, Rectangle rect)
+        {
+            Bitmap cropped = new Bitmap(rect.Width, rect.Height);
+            SafeSetResolution(cropped, source.HorizontalResolution, source.VerticalResolution);
+
+            using (Graphics g = Graphics.FromImage(cropped))
+            {
+                g.Clear(Color.White);
+                g.CompositingQuality = CompositingQuality.HighQuality;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.SmoothingMode = SmoothingMode.HighQuality;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                g.DrawImage(source, new Rectangle(0, 0, rect.Width, rect.Height), rect, GraphicsUnit.Pixel);
+            }
+
+            return cropped;
+        }
+
+        private static void SaveAsJpeg(Bitmap bitmap, Stream output, long quality)
+        {
+            ImageCodecInfo jpgCodec = ImageCodecInfo.GetImageDecoders()
+                .FirstOrDefault(c => c.FormatID == ImageFormat.Jpeg.Guid);
+
             if (jpgCodec == null)
             {
                 bitmap.Save(output, ImageFormat.Jpeg);
@@ -404,25 +754,9 @@ namespace Feniks.Administrator
 
             using (EncoderParameters encoderParams = new EncoderParameters(1))
             {
-                encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, jpegQuality);
+                encoderParams.Param[0] = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, quality);
                 bitmap.Save(output, jpgCodec, encoderParams);
             }
-        }
-
-        private static Size GetScaledSize(int width, int height, int maxLongSide)
-        {
-            if (width <= 0 || height <= 0)
-                return new Size(1, 1);
-
-            int longSide = Math.Max(width, height);
-            if (longSide <= maxLongSide)
-                return new Size(width, height);
-
-            double ratio = (double)maxLongSide / longSide;
-            int newWidth = Math.Max(1, (int)Math.Round(width * ratio));
-            int newHeight = Math.Max(1, (int)Math.Round(height * ratio));
-
-            return new Size(newWidth, newHeight);
         }
 
         private static void FixOrientation(DrawingImage img)
@@ -472,9 +806,21 @@ namespace Feniks.Administrator
             }
         }
 
-        private static ImageCodecInfo GetEncoder(ImageFormat format)
+        private static bool IsAllowedExtension(string ext)
         {
-            return ImageCodecInfo.GetImageDecoders().FirstOrDefault(c => c.FormatID == format.Guid);
+            string[] allowed = { ".jpg", ".jpeg", ".png", ".webp" };
+            return allowed.Contains(ext);
+        }
+
+        private static byte[] ReadFully(Stream input)
+        {
+            if (input == null) return null;
+
+            using (MemoryStream ms = new MemoryStream())
+            {
+                input.CopyTo(ms);
+                return ms.ToArray();
+            }
         }
 
         private static string GetSafeContentType(string ext, string postedContentType)
@@ -506,16 +852,124 @@ namespace Feniks.Administrator
             return (bytes / 1024d / 1024d).ToString("0.00") + " MB";
         }
 
+        private static void CleanLightBackgroundFromEdges(Bitmap bitmap, byte minChannel, int tolerance)
+        {
+            int width = bitmap.Width;
+            int height = bitmap.Height;
+
+            bool[,] visited = new bool[width, height];
+            Queue<Point> queue = new Queue<Point>();
+
+            for (int x = 0; x < width; x++)
+            {
+                EnqueueIfBackground(bitmap, visited, queue, x, 0, minChannel, tolerance);
+                EnqueueIfBackground(bitmap, visited, queue, x, height - 1, minChannel, tolerance);
+            }
+
+            for (int y = 0; y < height; y++)
+            {
+                EnqueueIfBackground(bitmap, visited, queue, 0, y, minChannel, tolerance);
+                EnqueueIfBackground(bitmap, visited, queue, width - 1, y, minChannel, tolerance);
+            }
+
+            int[] dx = { 1, -1, 0, 0 };
+            int[] dy = { 0, 0, 1, -1 };
+
+            while (queue.Count > 0)
+            {
+                Point p = queue.Dequeue();
+                bitmap.SetPixel(p.X, p.Y, Color.White);
+
+                for (int i = 0; i < 4; i++)
+                {
+                    int nx = p.X + dx[i];
+                    int ny = p.Y + dy[i];
+
+                    if (nx < 0 || ny < 0 || nx >= width || ny >= height)
+                        continue;
+
+                    if (visited[nx, ny])
+                        continue;
+
+                    EnqueueIfBackground(bitmap, visited, queue, nx, ny, minChannel, tolerance);
+                }
+            }
+        }
+
+        private static void ReplaceNearWhitePixels(Bitmap bitmap, byte whiteThreshold, int tolerance)
+        {
+            for (int y = 0; y < bitmap.Height; y++)
+            {
+                for (int x = 0; x < bitmap.Width; x++)
+                {
+                    Color c = bitmap.GetPixel(x, y);
+                    if (LooksLikeWhite(c, whiteThreshold, tolerance))
+                    {
+                        bitmap.SetPixel(x, y, Color.White);
+                    }
+                }
+            }
+        }
+
+        private static void EnqueueIfBackground(Bitmap bitmap, bool[,] visited, Queue<Point> queue, int x, int y, byte minChannel, int tolerance)
+        {
+            if (visited[x, y])
+                return;
+
+            Color c = bitmap.GetPixel(x, y);
+            if (LooksLikeBackground(c, minChannel, tolerance))
+            {
+                visited[x, y] = true;
+                queue.Enqueue(new Point(x, y));
+            }
+        }
+
+        private static bool LooksLikeBackground(Color c, byte minChannel, int tolerance)
+        {
+            int max = Math.Max(c.R, Math.Max(c.G, c.B));
+            int min = Math.Min(c.R, Math.Min(c.G, c.B));
+
+            bool brightEnough = c.R >= minChannel && c.G >= minChannel && c.B >= minChannel;
+            bool lowColorCast = (max - min) <= tolerance;
+
+            return brightEnough && lowColorCast;
+        }
+
+        private static bool LooksLikeWhite(Color c, byte whiteThreshold, int tolerance)
+        {
+            int max = Math.Max(c.R, Math.Max(c.G, c.B));
+            int min = Math.Min(c.R, Math.Min(c.G, c.B));
+
+            return c.R >= whiteThreshold &&
+                   c.G >= whiteThreshold &&
+                   c.B >= whiteThreshold &&
+                   (max - min) <= tolerance;
+        }
+
+        private void ClearMessage()
+        {
+            lblMsg.Text = "";
+            lblMsg.CssClass = "";
+        }
+
         private void ShowError(string message)
         {
             lblMsg.CssClass = "alert alert-danger";
-            lblMsg.Text = message;
+            lblMsg.Text = Server.HtmlEncode(message);
         }
 
         private void ShowSuccess(string message)
         {
             lblMsg.CssClass = "alert alert-success";
-            lblMsg.Text = message;
+            lblMsg.Text = Server.HtmlEncode(message);
+        }
+
+        private sealed class CanvasOptions
+        {
+            public int CanvasWidth { get; set; }
+            public int CanvasHeight { get; set; }
+            public double SubjectFillRatio { get; set; }
+            public bool ForceSquare { get; set; }
         }
     }
 }

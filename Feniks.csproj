@@ -589,6 +589,7 @@
     <Compile Include="RoleManage.aspx.designer.cs">
       <DependentUpon>RoleManage.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Services\BackgroundRemovalService.cs" />
     <Compile Include="SignupRequest.aspx.cs">
       <DependentUpon>SignupRequest.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>

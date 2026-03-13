@@ -42,6 +42,15 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.DropDownList ddlImageRole;
 
         /// <summary>
+        /// ddlPreset control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.DropDownList ddlPreset;
+
+        /// <summary>
         /// txtSortOrder control.
         /// </summary>
         /// <remarks>
@@ -49,6 +58,15 @@ namespace Feniks.Administrator
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.TextBox txtSortOrder;
+
+        /// <summary>
+        /// fuImage control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.FileUpload fuImage;
 
         /// <summary>
         /// chkIsPrimary control.
@@ -60,13 +78,40 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.CheckBox chkIsPrimary;
 
         /// <summary>
-        /// fuImage control.
+        /// chkUseAiBgRemoval control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.FileUpload fuImage;
+        protected global::System.Web.UI.WebControls.CheckBox chkUseAiBgRemoval;
+
+        /// <summary>
+        /// chkAutoWhiteBg control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox chkAutoWhiteBg;
+
+        /// <summary>
+        /// chkCenterSubject control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox chkCenterSubject;
+
+        /// <summary>
+        /// chkSoftShadow control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox chkSoftShadow;
 
         /// <summary>
         /// btnLoad control.
@@ -87,6 +132,15 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.Button btnUpload;
 
         /// <summary>
+        /// btnSaveOrder control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnSaveOrder;
+
+        /// <summary>
         /// lblMsg control.
         /// </summary>
         /// <remarks>
@@ -94,6 +148,15 @@ namespace Feniks.Administrator
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label lblMsg;
+
+        /// <summary>
+        /// hfSortOrder control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HiddenField hfSortOrder;
 
         /// <summary>
         /// rptImages control.
