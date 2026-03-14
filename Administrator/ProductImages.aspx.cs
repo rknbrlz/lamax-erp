@@ -38,6 +38,7 @@ namespace Feniks.Administrator
                 {
                     txtSKU.Text = sku.Trim();
                     BindImages();
+                    BindPacks();
                 }
             }
         }
@@ -46,6 +47,12 @@ namespace Feniks.Administrator
         {
             ClearMessage();
             BindImages();
+        }
+
+        protected void btnLoadPacks_Click(object sender, EventArgs e)
+        {
+            ClearMessage();
+            BindPacks();
         }
 
         protected void btnUpload_Click(object sender, EventArgs e)
@@ -61,6 +68,7 @@ namespace Feniks.Administrator
                     return;
                 }
 
+                int existingCount = GetImageCountBySku(sku);
                 HttpFileCollection files = Request.Files;
                 List<HttpPostedFile> imageFiles = new List<HttpPostedFile>();
 
@@ -78,6 +86,12 @@ namespace Feniks.Administrator
                     return;
                 }
 
+                if (existingCount + imageFiles.Count > 4)
+                {
+                    ShowError("This version supports maximum 4 source images per SKU.");
+                    return;
+                }
+
                 int nextSortOrder = GetInitialSortOrder(sku);
                 bool firstShouldBePrimary = chkIsPrimary.Checked;
                 bool autoWhiteBg = chkAutoWhiteBg.Checked;
@@ -87,7 +101,7 @@ namespace Feniks.Administrator
 
                 string preset = (ddlPreset.SelectedValue ?? "AUTO").Trim().ToUpperInvariant();
                 string imageRole = string.IsNullOrWhiteSpace(ddlImageRole.SelectedValue)
-                    ? "GALLERY"
+                    ? "MAIN"
                     : ddlImageRole.SelectedValue.Trim().ToUpperInvariant();
 
                 int insertedCount = 0;
@@ -165,7 +179,7 @@ namespace Feniks.Administrator
                         finalFileName = originalFileName;
                     }
 
-                    bool isPrimaryForThisImage = insertedCount == 0 && firstShouldBePrimary;
+                    bool isPrimaryForThisImage = (existingCount == 0 && insertedCount == 0 && firstShouldBePrimary);
 
                     InsertImage(
                         sku,
@@ -193,6 +207,7 @@ namespace Feniks.Administrator
 
                 ShowSuccess(insertedCount + " image(s) uploaded. " + string.Join(" | ", info));
                 BindImages();
+                BindPacks();
             }
             catch (Exception ex)
             {
@@ -264,6 +279,42 @@ namespace Feniks.Administrator
             }
         }
 
+        protected void btnGeneratePacks_Click(object sender, EventArgs e)
+        {
+            ClearMessage();
+
+            try
+            {
+                string sku = txtSKU.Text.Trim();
+                if (string.IsNullOrWhiteSpace(sku))
+                {
+                    ShowError("Please enter a SKU.");
+                    return;
+                }
+
+                List<ImageRow> images = GetImagesForSku(sku);
+                if (images.Count == 0)
+                {
+                    ShowError("No source images found for this SKU.");
+                    return;
+                }
+
+                string createdBy = User != null && User.Identity != null ? User.Identity.Name : "system";
+
+                GeneratePack(sku, "AMAZON", "Amazon Listing Pack", BuildAmazonPack(images), createdBy);
+                GeneratePack(sku, "ETSY", "Etsy Listing Pack", BuildEtsyPack(images), createdBy);
+                GeneratePack(sku, "EBAY", "eBay Listing Pack", BuildEbayPack(images), createdBy);
+                GeneratePack(sku, "WEBSITE", "Website Listing Pack", BuildWebsitePack(images), createdBy);
+
+                ShowSuccess("Listing packs generated and saved to database.");
+                BindPacks();
+            }
+            catch (Exception ex)
+            {
+                ShowError("Error: " + ex.Message);
+            }
+        }
+
         protected void rptImages_ItemCommand(object source, RepeaterCommandEventArgs e)
         {
             ClearMessage();
@@ -306,11 +357,28 @@ namespace Feniks.Administrator
                     NormalizeSortAfterDeleteOrPrimary(txtSKU.Text.Trim());
                     ShowSuccess("Image deleted.");
                     BindImages();
+                    BindPacks();
                 }
             }
             catch (Exception ex)
             {
                 ShowError("Error: " + ex.Message);
+            }
+        }
+
+        protected void rptPacks_ItemDataBound(object sender, RepeaterItemEventArgs e)
+        {
+            if (e.Item.ItemType != ListItemType.Item && e.Item.ItemType != ListItemType.AlternatingItem)
+                return;
+
+            HiddenField hfPackId = (HiddenField)e.Item.FindControl("hfPackId");
+            Repeater rptPackItems = (Repeater)e.Item.FindControl("rptPackItems");
+
+            int packId;
+            if (hfPackId != null && rptPackItems != null && int.TryParse(hfPackId.Value, out packId))
+            {
+                rptPackItems.DataSource = GetPackItems(packId);
+                rptPackItems.DataBind();
             }
         }
 
@@ -341,6 +409,65 @@ namespace Feniks.Administrator
 
             rptImages.DataSource = dt;
             rptImages.DataBind();
+        }
+
+        private void BindPacks()
+        {
+            string sku = txtSKU.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(sku))
+            {
+                rptPacks.DataSource = null;
+                rptPacks.DataBind();
+                return;
+            }
+
+            DataTable dt = new DataTable();
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImagePack_ListBySKU", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@SKU", sku);
+
+                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                {
+                    da.Fill(dt);
+                }
+            }
+
+            rptPacks.DataSource = dt;
+            rptPacks.DataBind();
+        }
+
+        private DataTable GetPackItems(int packId)
+        {
+            DataTable dt = new DataTable();
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImagePackItem_List", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@ProductImagePackID", packId);
+
+                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                {
+                    da.Fill(dt);
+                }
+            }
+
+            return dt;
+        }
+
+        private int GetImageCountBySku(string sku)
+        {
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand("SELECT COUNT(1) FROM dbo.T_ProductImage WHERE SKU=@SKU", con))
+            {
+                cmd.Parameters.AddWithValue("@SKU", sku);
+                con.Open();
+                return Convert.ToInt32(cmd.ExecuteScalar());
+            }
         }
 
         private int GetInitialSortOrder(string sku)
@@ -472,6 +599,181 @@ namespace Feniks.Administrator
             }
         }
 
+        private List<ImageRow> GetImagesForSku(string sku)
+        {
+            List<ImageRow> result = new List<ImageRow>();
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand(@"
+                SELECT ProductImageID, SKU, FileName, ImageRole, Marketplace, IsPrimary, SortOrder
+                FROM dbo.T_ProductImage
+                WHERE SKU = @SKU
+                ORDER BY IsPrimary DESC, SortOrder, ProductImageID", con))
+            {
+                cmd.Parameters.AddWithValue("@SKU", sku);
+                con.Open();
+
+                using (SqlDataReader dr = cmd.ExecuteReader())
+                {
+                    while (dr.Read())
+                    {
+                        result.Add(new ImageRow
+                        {
+                            ProductImageID = Convert.ToInt32(dr["ProductImageID"]),
+                            SKU = Convert.ToString(dr["SKU"]),
+                            FileName = Convert.ToString(dr["FileName"]),
+                            ImageRole = dr["ImageRole"] == DBNull.Value ? "" : Convert.ToString(dr["ImageRole"]).ToUpperInvariant(),
+                            Marketplace = dr["Marketplace"] == DBNull.Value ? "" : Convert.ToString(dr["Marketplace"]).ToUpperInvariant(),
+                            IsPrimary = dr["IsPrimary"] != DBNull.Value && Convert.ToBoolean(dr["IsPrimary"]),
+                            SortOrder = dr["SortOrder"] == DBNull.Value ? 0 : Convert.ToInt32(dr["SortOrder"])
+                        });
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private void GeneratePack(string sku, string packType, string packName, List<PackSlot> slots, string createdBy)
+        {
+            int packId;
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImagePack_Insert", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@SKU", sku);
+                cmd.Parameters.AddWithValue("@PackType", packType);
+                cmd.Parameters.AddWithValue("@PackName", packName);
+                cmd.Parameters.AddWithValue("@CreatedBy", createdBy);
+
+                con.Open();
+                packId = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            {
+                con.Open();
+
+                foreach (PackSlot slot in slots)
+                {
+                    if (slot.ProductImageID <= 0) continue;
+
+                    using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImagePackItem_Insert", con))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@ProductImagePackID", packId);
+                        cmd.Parameters.AddWithValue("@ProductImageID", slot.ProductImageID);
+                        cmd.Parameters.AddWithValue("@SlotNo", slot.SlotNo);
+                        cmd.Parameters.AddWithValue("@SlotName", slot.SlotName);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+        }
+
+        private List<PackSlot> BuildAmazonPack(List<ImageRow> images)
+        {
+            return BuildPack(
+                images,
+                new[] { "MAIN", "ANGLE", "DETAIL", "SIDE", "HAND", "PACKAGING" }
+            );
+        }
+
+        private List<PackSlot> BuildEtsyPack(List<ImageRow> images)
+        {
+            return BuildPack(
+                images,
+                new[] { "MAIN", "HAND", "DETAIL", "SIDE", "PACKAGING", "LIFESTYLE" }
+            );
+        }
+
+        private List<PackSlot> BuildEbayPack(List<ImageRow> images)
+        {
+            return BuildPack(
+                images,
+                new[] { "MAIN", "ANGLE", "DETAIL", "HAND", "SIDE" }
+            );
+        }
+
+        private List<PackSlot> BuildWebsitePack(List<ImageRow> images)
+        {
+            return BuildPack(
+                images,
+                new[] { "MAIN", "HAND", "DETAIL", "SIDE", "PACKAGING", "LIFESTYLE" }
+            );
+        }
+
+        private List<PackSlot> BuildPack(List<ImageRow> images, string[] desiredSlots)
+        {
+            List<PackSlot> result = new List<PackSlot>();
+            HashSet<int> used = new HashSet<int>();
+            int slotNo = 1;
+
+            foreach (string slot in desiredSlots)
+            {
+                ImageRow selected = PickBestImageForSlot(images, slot, used);
+                if (selected == null) continue;
+
+                used.Add(selected.ProductImageID);
+
+                result.Add(new PackSlot
+                {
+                    SlotNo = slotNo,
+                    SlotName = slot,
+                    ProductImageID = selected.ProductImageID
+                });
+
+                slotNo++;
+            }
+
+            if (result.Count == 0 && images.Count > 0)
+            {
+                for (int i = 0; i < images.Count; i++)
+                {
+                    result.Add(new PackSlot
+                    {
+                        SlotNo = i + 1,
+                        SlotName = i == 0 ? "MAIN" : "GALLERY",
+                        ProductImageID = images[i].ProductImageID
+                    });
+                }
+            }
+
+            return result;
+        }
+
+        private ImageRow PickBestImageForSlot(List<ImageRow> images, string slot, HashSet<int> used)
+        {
+            string desired = slot.ToUpperInvariant();
+
+            ImageRow exact = images
+                .Where(x => !used.Contains(x.ProductImageID) && x.ImageRole == desired)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.SortOrder)
+                .FirstOrDefault();
+
+            if (exact != null) return exact;
+
+            if (desired == "MAIN")
+            {
+                ImageRow primary = images
+                    .Where(x => !used.Contains(x.ProductImageID) && x.IsPrimary)
+                    .OrderBy(x => x.SortOrder)
+                    .FirstOrDefault();
+
+                if (primary != null) return primary;
+            }
+
+            ImageRow fallback = images
+                .Where(x => !used.Contains(x.ProductImageID))
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.SortOrder)
+                .FirstOrDefault();
+
+            return fallback;
+        }
+
         private static byte[] ProcessMarketplaceImage(
             byte[] inputBytes,
             string imageRole,
@@ -552,66 +854,25 @@ namespace Feniks.Administrator
 
             if (p == "AMAZON")
             {
-                return new CanvasOptions
-                {
-                    CanvasWidth = 2000,
-                    CanvasHeight = 2000,
-                    SubjectFillRatio = role == "MAIN" ? 0.88 : 0.80,
-                    ForceSquare = true
-                };
+                return new CanvasOptions { CanvasWidth = 2000, CanvasHeight = 2000, SubjectFillRatio = role == "MAIN" ? 0.88 : 0.80, ForceSquare = true };
             }
 
             if (p == "ETSY")
             {
-                return new CanvasOptions
-                {
-                    CanvasWidth = 2000,
-                    CanvasHeight = 2000,
-                    SubjectFillRatio = role == "MAIN" ? 0.82 : 0.76,
-                    ForceSquare = true
-                };
+                return new CanvasOptions { CanvasWidth = 2000, CanvasHeight = 2000, SubjectFillRatio = role == "MAIN" ? 0.82 : 0.76, ForceSquare = true };
             }
 
             if (p == "WEBSITE")
             {
-                return new CanvasOptions
-                {
-                    CanvasWidth = 1800,
-                    CanvasHeight = 1800,
-                    SubjectFillRatio = 0.78,
-                    ForceSquare = true
-                };
+                return new CanvasOptions { CanvasWidth = 1800, CanvasHeight = 1800, SubjectFillRatio = 0.78, ForceSquare = true };
             }
 
             if (p == "SQUARE")
             {
-                return new CanvasOptions
-                {
-                    CanvasWidth = 2000,
-                    CanvasHeight = 2000,
-                    SubjectFillRatio = 0.84,
-                    ForceSquare = true
-                };
+                return new CanvasOptions { CanvasWidth = 2000, CanvasHeight = 2000, SubjectFillRatio = 0.84, ForceSquare = true };
             }
 
-            if (role == "MAIN")
-            {
-                return new CanvasOptions
-                {
-                    CanvasWidth = 2000,
-                    CanvasHeight = 2000,
-                    SubjectFillRatio = 0.86,
-                    ForceSquare = true
-                };
-            }
-
-            return new CanvasOptions
-            {
-                CanvasWidth = 2000,
-                CanvasHeight = 2000,
-                SubjectFillRatio = 0.78,
-                ForceSquare = true
-            };
+            return new CanvasOptions { CanvasWidth = 2000, CanvasHeight = 2000, SubjectFillRatio = 0.86, ForceSquare = true };
         }
 
         private static Bitmap RenderStudioCanvas(Bitmap subjectBitmap, CanvasOptions options, bool addShadow, bool centerSubject)
@@ -674,13 +935,7 @@ namespace Feniks.Administrator
                 int alpha = Math.Max(1, i);
                 using (SolidBrush brush = new SolidBrush(Color.FromArgb(alpha, 0, 0, 0)))
                 {
-                    Rectangle r = new Rectangle(
-                        x - i,
-                        y - (i / 2),
-                        width + (i * 2),
-                        height + i
-                    );
-
+                    Rectangle r = new Rectangle(x - i, y - (i / 2), width + (i * 2), height + i);
                     g.FillEllipse(brush, r);
                 }
             }
@@ -734,7 +989,6 @@ namespace Feniks.Administrator
                 g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                 g.SmoothingMode = SmoothingMode.HighQuality;
                 g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-
                 g.DrawImage(source, new Rectangle(0, 0, rect.Width, rect.Height), rect, GraphicsUnit.Pixel);
             }
 
@@ -783,9 +1037,7 @@ namespace Feniks.Administrator
 
                 img.RemovePropertyItem(ExifOrientationId);
             }
-            catch
-            {
-            }
+            catch { }
         }
 
         private static void SafeSetResolution(Bitmap bmp, float horizontal, float vertical)
@@ -834,14 +1086,10 @@ namespace Feniks.Administrator
             switch (ext)
             {
                 case ".jpg":
-                case ".jpeg":
-                    return "image/jpeg";
-                case ".png":
-                    return "image/png";
-                case ".webp":
-                    return "image/webp";
-                default:
-                    return "application/octet-stream";
+                case ".jpeg": return "image/jpeg";
+                case ".png": return "image/png";
+                case ".webp": return "image/webp";
+                default: return "application/octet-stream";
             }
         }
 
@@ -970,6 +1218,24 @@ namespace Feniks.Administrator
             public int CanvasHeight { get; set; }
             public double SubjectFillRatio { get; set; }
             public bool ForceSquare { get; set; }
+        }
+
+        private sealed class ImageRow
+        {
+            public int ProductImageID { get; set; }
+            public string SKU { get; set; }
+            public string FileName { get; set; }
+            public string ImageRole { get; set; }
+            public string Marketplace { get; set; }
+            public bool IsPrimary { get; set; }
+            public int SortOrder { get; set; }
+        }
+
+        private sealed class PackSlot
+        {
+            public int SlotNo { get; set; }
+            public string SlotName { get; set; }
+            public int ProductImageID { get; set; }
         }
     }
 }
