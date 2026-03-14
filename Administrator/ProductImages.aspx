@@ -2,384 +2,561 @@
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" />
-
 <style>
     body { background:#f5f6f8; }
+
     .page-wrap { padding:14px; }
+
     .card-box {
-        background:#fff; border:1px solid #e8e8e8; border-radius:18px;
-        padding:22px; margin-bottom:18px; box-shadow:0 4px 12px rgba(0,0,0,.03);
-    }
-    .page-title { font-size:26px; font-weight:800; margin:0 0 6px 0; color:#1f2937; }
-    .page-subtitle { color:#6b7280; margin-bottom:18px; }
-
-    .filter-grid {
-        display:grid; grid-template-columns:repeat(6, minmax(150px,1fr));
-        gap:14px; align-items:end;
-    }
-    .filter-grid .field label {
-        display:block; margin-bottom:6px; font-size:12px; font-weight:700;
-        color:#374151; text-transform:uppercase; letter-spacing:.3px;
+        background:#fff;
+        border:1px solid #e8e8e8;
+        border-radius:18px;
+        padding:18px;
+        margin-bottom:16px;
+        box-shadow:0 4px 12px rgba(0,0,0,.03);
     }
 
-    .drop-zone {
-        margin-top:16px; border:2px dashed #d1d5db; border-radius:18px;
-        background:#fafafa; padding:26px; text-align:center; transition:all .2s ease; cursor:pointer;
+    .page-title {
+        font-size:28px;
+        font-weight:800;
+        margin:0 0 4px 0;
+        color:#111827;
     }
-    .drop-zone:hover { background:#f3f4f6; border-color:#9ca3af; }
-    .drop-title { font-size:18px; font-weight:800; color:#111827; margin-bottom:6px; }
-    .drop-note { color:#6b7280; font-size:13px; line-height:1.5; }
+
+    .page-subtitle {
+        color:#6b7280;
+        margin-bottom:18px;
+        font-size:13px;
+    }
+
+    .toolbar-grid {
+        display:grid;
+        grid-template-columns:repeat(6, 1fr);
+        gap:10px;
+        align-items:end;
+    }
+
+    .field-label {
+        display:block;
+        font-size:11px;
+        font-weight:800;
+        color:#374151;
+        margin-bottom:6px;
+        text-transform:uppercase;
+        letter-spacing:.4px;
+    }
+
+    .text-input,
+    .select-input,
+    .upload-input {
+        width:100%;
+        border:1px solid #d1d5db;
+        border-radius:8px;
+        padding:9px 10px;
+        font-size:13px;
+        background:#fff;
+    }
+
+    .dropzone {
+        margin-top:12px;
+        border:2px dashed #d1d5db;
+        border-radius:14px;
+        padding:18px;
+        text-align:center;
+        color:#6b7280;
+        background:#fafafa;
+    }
+
+    .dropzone strong {
+        display:block;
+        font-size:16px;
+        color:#111827;
+        margin-bottom:4px;
+    }
 
     .option-row {
-        display:flex; flex-wrap:wrap; gap:18px; margin-top:16px; align-items:center;
-    }
-    .option-row span { display:flex; align-items:center; }
-    .option-row label { font-weight:600; color:#374151; margin-left:6px; margin-right:12px; margin-bottom:0; }
-
-    .action-row { display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; }
-    .help-note { margin-top:12px; color:#6b7280; font-size:12px; line-height:1.6; }
-    .alert { margin-top:16px; margin-bottom:0; border-radius:12px; }
-
-    .preview-title { font-size:18px; font-weight:800; color:#111827; margin-bottom:14px; }
-    .img-grid { display:flex; flex-wrap:wrap; gap:16px; }
-    .img-card {
-        width:240px; flex:0 0 240px; background:#fff; border:1px solid #e5e7eb;
-        border-radius:18px; overflow:hidden; box-shadow:0 4px 12px rgba(0,0,0,.03);
-        transition:all .2s ease; position:relative; cursor:move;
-    }
-    .img-card:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,.06); }
-    .img-card.primary-card { border:2px solid #16a34a; box-shadow:0 0 10px rgba(22,163,74,.22); }
-
-    .img-thumb {
-        height:220px; background:linear-gradient(180deg,#f9fafb 0%,#f3f4f6 100%);
-        display:flex; align-items:center; justify-content:center; overflow:hidden;
-    }
-    .img-thumb img {
-        width:100%; height:100%; object-fit:contain; background:#fff;
-        transition:transform .25s ease; pointer-events:none;
-    }
-    .img-card:hover .img-thumb img { transform:scale(1.04); }
-
-    .img-body { padding:14px; cursor:default; }
-    .img-name {
-        font-size:14px; font-weight:700; color:#111827; line-height:1.4;
-        min-height:40px; word-break:break-word; margin-bottom:10px;
-    }
-    .badge-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px; }
-    .soft-badge {
-        display:inline-block; padding:5px 9px; border-radius:999px; font-size:11px;
-        font-weight:700; letter-spacing:.2px; background:#eef2ff; color:#3730a3;
-    }
-    .soft-badge.primary { background:#dcfce7; color:#166534; }
-    .soft-badge.market { background:#ecfeff; color:#155e75; }
-
-    .img-meta { font-size:12px; color:#6b7280; line-height:1.6; margin-bottom:12px; }
-    .img-actions { display:flex; gap:8px; flex-wrap:wrap; }
-
-    .drag-hint, .sort-badge, .drag-handle {
-        position:absolute; z-index:3; color:#fff; font-size:11px; font-weight:700;
-        border-radius:999px; pointer-events:none;
-    }
-    .drag-hint { top:10px; right:10px; background:rgba(17,24,39,.78); padding:4px 8px; }
-    .sort-badge { top:10px; left:10px; background:#111827; padding:4px 8px; }
-    .drag-handle {
-        bottom:10px; right:10px; background:#334155; border-radius:10px;
-        padding:5px 8px; pointer-events:auto; cursor:grab;
+        display:flex;
+        flex-wrap:wrap;
+        gap:18px;
+        margin-top:14px;
+        margin-bottom:12px;
     }
 
-    .sortable-placeholder {
-        width:240px; height:340px; border:2px dashed #93c5fd;
-        background:#eff6ff; border-radius:18px;
+    .option-row label {
+        font-size:13px;
+        color:#374151;
+        font-weight:600;
     }
 
-    .pack-grid {
+    .btn-row {
+        display:flex;
+        flex-wrap:wrap;
+        gap:8px;
+        margin-top:10px;
+    }
+
+    .btnx,
+    .btn-link-mini {
+        display:inline-block;
+        padding:9px 14px;
+        border-radius:8px;
+        border:1px solid transparent;
+        font-size:13px;
+        font-weight:700;
+        text-decoration:none !important;
+        cursor:pointer;
+    }
+
+    .btn-primaryx { background:#2563eb; color:#fff !important; }
+    .btn-successx { background:#16a34a; color:#fff !important; }
+    .btn-lightx   { background:#fff; color:#111827 !important; border-color:#d1d5db; }
+    .btn-darkx    { background:#111827; color:#fff !important; }
+    .btn-dangerx  { background:#dc2626; color:#fff !important; }
+
+    .btnx[disabled],
+    .btnx.disabled {
+        opacity:.7;
+        cursor:not-allowed;
+        pointer-events:none;
+    }
+
+    .help-note {
+        margin-top:10px;
+        font-size:12px;
+        color:#6b7280;
+    }
+
+    .section-title {
+        font-size:16px;
+        font-weight:800;
+        color:#111827;
+        margin-bottom:14px;
+    }
+
+    .image-grid {
+        display:grid;
+        grid-template-columns:repeat(auto-fill, minmax(190px, 1fr));
+        gap:14px;
+    }
+
+    .image-card {
+        border:1px solid #dfe3e8;
+        border-radius:14px;
+        padding:10px;
+        background:#fff;
+        position:relative;
+    }
+
+    .image-card.primary {
+        border-color:#22c55e;
+        box-shadow:0 0 0 2px rgba(34,197,94,.12);
+    }
+
+    .image-thumb {
+        width:100%;
+        aspect-ratio:1 / 1;
+        object-fit:contain;
+        background:#fff;
+        border-radius:10px;
+        border:1px solid #eef0f2;
+    }
+
+    .image-name {
+        margin-top:10px;
+        font-size:12px;
+        font-weight:700;
+        color:#111827;
+        word-break:break-word;
+        min-height:34px;
+    }
+
+    .badge-row {
+        display:flex;
+        flex-wrap:wrap;
+        gap:6px;
+        margin-top:8px;
+        margin-bottom:8px;
+    }
+
+    .badge-mini {
+        display:inline-block;
+        border-radius:999px;
+        padding:3px 8px;
+        font-size:10px;
+        font-weight:800;
+        background:#eef2ff;
+        color:#4338ca;
+    }
+
+    .badge-green {
+        background:#ecfdf5;
+        color:#15803d;
+    }
+
+    .badge-gray {
+        background:#f3f4f6;
+        color:#4b5563;
+    }
+
+    .meta-text {
+        font-size:11px;
+        color:#6b7280;
+        margin-bottom:8px;
+    }
+
+    .card-actions {
+        display:flex;
+        gap:6px;
+        flex-wrap:wrap;
+    }
+
+    .btn-mini {
+        border:0;
+        border-radius:6px;
+        padding:5px 8px;
+        font-size:11px;
+        font-weight:700;
+        cursor:pointer;
+        color:#fff;
+        text-decoration:none !important;
+    }
+
+    .btn-mini-green { background:#22c55e; }
+    .btn-mini-red   { background:#ef4444; }
+    .btn-mini-dark  { background:#111827; }
+
+    .packs-grid {
         display:grid;
         grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));
-        gap:16px;
+        gap:14px;
     }
 
     .pack-card {
         border:1px solid #e5e7eb;
-        border-radius:18px;
+        border-radius:14px;
+        padding:14px;
         background:#fff;
-        padding:16px;
-        box-shadow:0 4px 12px rgba(0,0,0,.03);
     }
 
     .pack-title {
-        font-size:16px;
+        font-size:22px;
+        font-weight:800;
+        color:#111827;
+        margin-bottom:3px;
+    }
+
+    .pack-meta {
+        font-size:11px;
+        color:#6b7280;
+        margin-bottom:10px;
+    }
+
+    .pack-actions {
+        display:flex;
+        gap:8px;
+        flex-wrap:wrap;
+        margin-bottom:12px;
+    }
+
+    .pack-item {
+        display:flex;
+        gap:10px;
+        align-items:center;
+        margin-bottom:10px;
+        padding-bottom:10px;
+        border-bottom:1px solid #f1f5f9;
+    }
+
+    .pack-thumb {
+        width:64px;
+        height:64px;
+        object-fit:contain;
+        background:#fff;
+        border:1px solid #e5e7eb;
+        border-radius:8px;
+        flex:0 0 64px;
+    }
+
+    .pack-item-title {
+        font-size:12px;
+        font-weight:800;
+        color:#111827;
+        margin-bottom:4px;
+    }
+
+    .pack-item-file {
+        font-size:11px;
+        color:#6b7280;
+        margin-bottom:6px;
+        word-break:break-word;
+    }
+
+    .pack-item-actions {
+        display:flex;
+        gap:6px;
+        flex-wrap:wrap;
+    }
+
+    .alert {
+        margin-bottom:12px;
+        border-radius:10px;
+    }
+
+    .page-loader-overlay {
+        position:fixed;
+        inset:0;
+        background:rgba(255,255,255,.78);
+        backdrop-filter:blur(2px);
+        z-index:99999;
+        display:none;
+        align-items:center;
+        justify-content:center;
+    }
+
+    .page-loader-overlay.show {
+        display:flex;
+    }
+
+    .page-loader-box {
+        min-width:320px;
+        max-width:90%;
+        background:#ffffff;
+        border:1px solid #e5e7eb;
+        border-radius:18px;
+        box-shadow:0 16px 40px rgba(0,0,0,.12);
+        padding:26px 28px;
+        text-align:center;
+    }
+
+    .page-loader-spinner {
+        width:54px;
+        height:54px;
+        margin:0 auto 16px auto;
+        border:5px solid #e5e7eb;
+        border-top-color:#2563eb;
+        border-radius:50%;
+        animation:lamaxSpin .9s linear infinite;
+    }
+
+    .page-loader-title {
+        font-size:20px;
         font-weight:800;
         color:#111827;
         margin-bottom:6px;
     }
 
-    .pack-sub {
-        font-size:12px;
-        color:#6b7280;
-        margin-bottom:12px;
-    }
-
-    .pack-table {
-        width:100%;
-    }
-
-    .pack-table td {
-        padding:6px 0;
-        border-bottom:1px solid #f1f5f9;
+    .page-loader-text {
         font-size:13px;
+        color:#6b7280;
+        line-height:1.5;
     }
 
-    .slot-name {
-        font-weight:700;
-        color:#1f2937;
-        width:90px;
+    @keyframes lamaxSpin {
+        from { transform:rotate(0deg); }
+        to { transform:rotate(360deg); }
     }
 
-    @media (max-width:1200px) {
-        .filter-grid { grid-template-columns:repeat(3, minmax(150px,1fr)); }
+    @media (max-width: 1200px) {
+        .toolbar-grid { grid-template-columns:repeat(3, 1fr); }
     }
 
-    @media (max-width:768px) {
-        .filter-grid { grid-template-columns:1fr; }
-        .action-row { flex-direction:column; }
-        .action-row .btn { width:100%; }
-        .img-card { width:100%; flex:1 1 100%; }
+    @media (max-width: 768px) {
+        .toolbar-grid { grid-template-columns:repeat(1, 1fr); }
     }
 </style>
 
 <div class="page-wrap">
     <div class="card-box">
         <div class="page-title">Product Images</div>
-        <div class="page-subtitle">Upload, optimize, reorder and generate marketplace image packs by SKU.</div>
+        <div class="page-subtitle">
+            Upload up to 4 source images, clean the background to white, generate marketplace packs, and download generated files.
+        </div>
 
-        <div class="filter-grid">
-            <div class="field">
-                <label>SKU</label>
-                <asp:TextBox ID="txtSKU" runat="server" CssClass="form-control" />
+        <asp:Label ID="lblMsg" runat="server" EnableViewState="false" />
+
+        <div class="toolbar-grid">
+            <div>
+                <label class="field-label">SKU</label>
+                <asp:TextBox ID="txtSKU" runat="server" CssClass="text-input" />
             </div>
 
-            <div class="field">
-                <label>Marketplace</label>
-                <asp:DropDownList ID="ddlMarketplace" runat="server" CssClass="form-control">
+            <div>
+                <label class="field-label">Marketplace</label>
+                <asp:DropDownList ID="ddlMarketplace" runat="server" CssClass="select-input">
                     <asp:ListItem Text="Default" Value="" />
-                    <asp:ListItem Text="Etsy" Value="ETSY" />
                     <asp:ListItem Text="Amazon" Value="AMAZON" />
+                    <asp:ListItem Text="Etsy" Value="ETSY" />
                     <asp:ListItem Text="eBay" Value="EBAY" />
                     <asp:ListItem Text="Website" Value="WEBSITE" />
                 </asp:DropDownList>
             </div>
 
-            <div class="field">
-                <label>Image Role</label>
-                <asp:DropDownList ID="ddlImageRole" runat="server" CssClass="form-control">
+            <div>
+                <label class="field-label">Image Role</label>
+                <asp:DropDownList ID="ddlImageRole" runat="server" CssClass="select-input">
                     <asp:ListItem Text="MAIN" Value="MAIN" />
-                    <asp:ListItem Text="HAND" Value="HAND" />
-                    <asp:ListItem Text="DETAIL" Value="DETAIL" />
-                    <asp:ListItem Text="SIDE" Value="SIDE" />
                     <asp:ListItem Text="ANGLE" Value="ANGLE" />
-                    <asp:ListItem Text="PACKAGING" Value="PACKAGING" />
-                    <asp:ListItem Text="LIFESTYLE" Value="LIFESTYLE" />
+                    <asp:ListItem Text="DETAIL" Value="DETAIL" />
+                    <asp:ListItem Text="HAND" Value="HAND" />
+                    <asp:ListItem Text="SIDE" Value="SIDE" />
+                    <asp:ListItem Text="GALLERY" Value="GALLERY" />
                 </asp:DropDownList>
             </div>
 
-            <div class="field">
-                <label>Preset</label>
-                <asp:DropDownList ID="ddlPreset" runat="server" CssClass="form-control">
+            <div>
+                <label class="field-label">Preset</label>
+                <asp:DropDownList ID="ddlPreset" runat="server" CssClass="select-input">
                     <asp:ListItem Text="Auto" Value="AUTO" />
-                    <asp:ListItem Text="Amazon" Value="AMAZON" />
-                    <asp:ListItem Text="Etsy" Value="ETSY" />
-                    <asp:ListItem Text="Website" Value="WEBSITE" />
-                    <asp:ListItem Text="Square Studio" Value="SQUARE" />
+                    <asp:ListItem Text="Amazon Clean White" Value="AMAZON" />
+                    <asp:ListItem Text="Etsy Premium" Value="ETSY" />
+                    <asp:ListItem Text="eBay Standard" Value="EBAY" />
+                    <asp:ListItem Text="Website Premium" Value="WEBSITE" />
                 </asp:DropDownList>
             </div>
 
-            <div class="field">
-                <label>Start Sort Order</label>
-                <asp:TextBox ID="txtSortOrder" runat="server" CssClass="form-control" TextMode="Number" />
+            <div>
+                <label class="field-label">Start Sort Order</label>
+                <asp:TextBox ID="txtSortOrder" runat="server" CssClass="text-input" />
             </div>
 
-            <div class="field">
-                <label>Image Upload</label>
-                <asp:FileUpload ID="fuImage" runat="server" CssClass="form-control" />
+            <div>
+                <label class="field-label">Image Upload</label>
+                <asp:FileUpload ID="fuImage" runat="server" CssClass="upload-input" AllowMultiple="true" />
             </div>
         </div>
 
-        <div class="drop-zone" onclick="document.getElementById('<%= fuImage.ClientID %>').click();">
-            <div class="drop-title">Drop files here or click</div>
-            <div class="drop-note">
-                Upload up to 4 source images. Then let LamaX build Amazon / Etsy / eBay / Website image packs.
-            </div>
+        <div class="dropzone">
+            <strong>Drop files here or click</strong>
+            Upload up to 4 source images. Then let LamaX build Amazon / Etsy / eBay / Website image packs.
         </div>
 
         <div class="option-row">
-            <span>
-                <asp:CheckBox ID="chkIsPrimary" runat="server" />
-                <label for="<%= chkIsPrimary.ClientID %>">Make first uploaded image primary</label>
-            </span>
-
-            <span>
-                <asp:CheckBox ID="chkUseAiBgRemoval" runat="server" />
-                <label for="<%= chkUseAiBgRemoval.ClientID %>">Use AI background removal API</label>
-            </span>
-
-            <span>
-                <asp:CheckBox ID="chkAutoWhiteBg" runat="server" Checked="true" />
-                <label for="<%= chkAutoWhiteBg.ClientID %>">Auto clean light background to white</label>
-            </span>
-
-            <span>
-                <asp:CheckBox ID="chkCenterSubject" runat="server" Checked="true" />
-                <label for="<%= chkCenterSubject.ClientID %>">Center subject automatically</label>
-            </span>
-
-            <span>
-                <asp:CheckBox ID="chkSoftShadow" runat="server" />
-                <label for="<%= chkSoftShadow.ClientID %>">Add soft shadow</label>
-            </span>
+            <label><asp:CheckBox ID="chkIsPrimary" runat="server" /> Make first uploaded image primary</label>
+            <label><asp:CheckBox ID="chkAutoWhiteBg" runat="server" Checked="true" /> Auto clean light background to white</label>
+            <label><asp:CheckBox ID="chkCenterSubject" runat="server" Checked="true" /> Center subject automatically</label>
+            <label><asp:CheckBox ID="chkSoftShadow" runat="server" /> Add soft shadow</label>
+            <label><asp:CheckBox ID="chkDeleteOldPacks" runat="server" Checked="true" /> Replace existing generated packs</label>
         </div>
 
-        <div class="action-row">
-            <asp:Button ID="btnLoad" runat="server" Text="Load Images" CssClass="btn btn-default" OnClick="btnLoad_Click" />
-            <asp:Button ID="btnUpload" runat="server" Text="Upload Image(s)" CssClass="btn btn-primary" OnClick="btnUpload_Click" />
-            <asp:Button ID="btnSaveOrder" runat="server" Text="Save Order" CssClass="btn btn-info" OnClientClick="prepareSortOrderBeforePostback(); return true;" OnClick="btnSaveOrder_Click" />
-            <asp:Button ID="btnGeneratePacks" runat="server" Text="Generate Listing Packs" CssClass="btn btn-success" OnClick="btnGeneratePacks_Click" />
-            <asp:Button ID="btnLoadPacks" runat="server" Text="Load Packs" CssClass="btn btn-default" OnClick="btnLoadPacks_Click" />
+        <div class="btn-row">
+            <asp:Button ID="btnLoad" runat="server" Text="Load Images" CssClass="btnx btn-lightx"
+                OnClick="btnLoad_Click"
+                OnClientClick="return showPageLoader('Loading images...', 'Please wait while LamaX loads source images and generated packs.', this);" />
+
+            <asp:Button ID="btnUpload" runat="server" Text="Upload Image(s)" CssClass="btnx btn-primaryx"
+                OnClick="btnUpload_Click"
+                OnClientClick="return showPageLoader('Uploading images...', 'Your files are being uploaded and optimized. This may take a few seconds.', this);" />
+
+            <asp:Button ID="btnGeneratePacks" runat="server" Text="Generate Listing Packs" CssClass="btnx btn-successx"
+                OnClick="btnGeneratePacks_Click"
+                OnClientClick="return showPageLoader('Generating listing packs...', 'LamaX is cleaning backgrounds and building Amazon, Etsy, eBay, and Website image sets.', this);" />
+
+            <asp:Button ID="btnLoadPacks" runat="server" Text="Load Packs" CssClass="btnx btn-lightx"
+                OnClick="btnLoadPacks_Click"
+                OnClientClick="return showPageLoader('Loading packs...', 'Please wait while generated listing packs are loaded.', this);" />
+
+            <asp:HyperLink ID="lnkDownloadAllPacks" runat="server" CssClass="btn-link-mini btn-darkx" Text="Download All Packs ZIP" />
         </div>
 
         <div class="help-note">
-            Drag cards using the HANDLE area. Save Order works even if you do not drag. Generate Listing Packs creates channel-specific image sets and stores them in database.
+            Source images are improved first. Generated Listing Packs create channel-specific derivative images and store them in database.
         </div>
-
-        <asp:Label ID="lblMsg" runat="server" EnableViewState="false"></asp:Label>
-        <asp:HiddenField ID="hfSortOrder" runat="server" />
     </div>
 
     <div class="card-box">
-        <div class="preview-title">Source Images</div>
+        <div class="section-title">Source Images</div>
 
         <asp:Repeater ID="rptImages" runat="server" OnItemCommand="rptImages_ItemCommand">
-            <HeaderTemplate><div id="imageSortable" class="img-grid"></HeaderTemplate>
+            <HeaderTemplate>
+                <div class="image-grid">
+            </HeaderTemplate>
             <ItemTemplate>
-                <div class='img-card <%# Convert.ToBoolean(Eval("IsPrimary")) ? "primary-card" : "" %>' data-id='<%# Eval("ProductImageID") %>'>
-                    <div class="sort-badge">#<%# Eval("SortOrder") %></div>
-                    <div class="drag-hint">DRAG</div>
+                <div class='image-card <%# Convert.ToBoolean(Eval("IsPrimary")) ? "primary" : "" %>'>
+                    <img class="image-thumb" src='<%# ResolveUrl("~/Administrator/ProductPhoto.ashx?id=" + Eval("ProductImageID")) %>' alt="" />
+                    <div class="image-name"><%# Eval("FileName") %></div>
 
-                    <div class="img-thumb">
-                        <img src='/ProductImageHandler.ashx?id=<%# Eval("ProductImageID") %>&thumb=1&w=420&h=420'
-                             alt='<%# Eval("FileName") %>' />
+                    <div class="badge-row">
+                        <%# Convert.ToBoolean(Eval("IsPrimary")) ? "<span class=\"badge-mini badge-green\">PRIMARY</span>" : "" %>
+                        <span class="badge-mini"><%# Eval("ImageRole") %></span>
+                        <span class="badge-mini badge-gray"><%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("Marketplace"))) ? "DEFAULT" : Eval("Marketplace").ToString() %></span>
                     </div>
 
-                    <div class="img-body">
-                        <div class="img-name"><%# Eval("FileName") %></div>
-
-                        <div class="badge-row">
-                            <%# Convert.ToBoolean(Eval("IsPrimary")) ? "<span class='soft-badge primary'>PRIMARY</span>" : "" %>
-                            <span class="soft-badge"><%# Eval("ImageRole") %></span>
-                            <span class="soft-badge market"><%# string.IsNullOrWhiteSpace(Convert.ToString(Eval("Marketplace"))) ? "DEFAULT" : Eval("Marketplace").ToString() %></span>
-                        </div>
-
-                        <div class="img-meta">ID: <%# Eval("ProductImageID") %></div>
-
-                        <div class="img-actions">
-                            <asp:LinkButton ID="btnMakePrimary" runat="server"
-                                CssClass="btn btn-success btn-xs"
-                                CommandName="makeprimary"
-                                CommandArgument='<%# Eval("ProductImageID") %>'>Make Primary</asp:LinkButton>
-
-                            <asp:LinkButton ID="btnDelete" runat="server"
-                                CssClass="btn btn-danger btn-xs"
-                                CommandName="deleteimg"
-                                CommandArgument='<%# Eval("ProductImageID") %>'
-                                OnClientClick="return confirm('Delete this image?');">Delete</asp:LinkButton>
-                        </div>
+                    <div class="meta-text">
+                        Sort: <%# Eval("SortOrder") %><br />
+                        ID: <%# Eval("ProductImageID") %>
                     </div>
 
-                    <div class="drag-handle">HANDLE</div>
+                    <div class="card-actions">
+                        <asp:Button ID="btnPrimary" runat="server" Text="Make Primary" CommandName="makeprimary" CommandArgument='<%# Eval("ProductImageID") %>' CssClass="btn-mini btn-mini-green" />
+                        <asp:Button ID="btnDelete" runat="server" Text="Delete" CommandName="deleteimg" CommandArgument='<%# Eval("ProductImageID") %>' CssClass="btn-mini btn-mini-red" OnClientClick="return confirm('Delete this image?');" />
+                        <a class="btn-mini btn-mini-dark" href='<%# ResolveUrl("~/Administrator/ProductImageDownload.ashx?mode=single&id=" + Eval("ProductImageID")) %>' target="_blank">Download</a>
+                    </div>
                 </div>
             </ItemTemplate>
-            <FooterTemplate></div></FooterTemplate>
+            <FooterTemplate>
+                </div>
+            </FooterTemplate>
         </asp:Repeater>
     </div>
 
     <div class="card-box">
-        <div class="preview-title">Generated Listing Packs</div>
-
-        <asp:Repeater ID="rptPacks" runat="server" OnItemDataBound="rptPacks_ItemDataBound">
-            <HeaderTemplate><div class="pack-grid"></HeaderTemplate>
-            <ItemTemplate>
-                <div class="pack-card">
-                    <div class="pack-title"><%# Eval("PackName") %></div>
-                    <div class="pack-sub">
-                        <%# Eval("PackType") %> · <%# Eval("CreatedOn") %>
-                    </div>
-
-                    <asp:HiddenField ID="hfPackId" runat="server" Value='<%# Eval("ProductImagePackID") %>' />
-
-                    <asp:Repeater ID="rptPackItems" runat="server">
-                        <HeaderTemplate><table class="pack-table"></HeaderTemplate>
-                        <ItemTemplate>
-                            <tr>
-                                <td class="slot-name"><%# Eval("SlotName") %></td>
-                                <td><%# Eval("FileName") %></td>
-                            </tr>
-                        </ItemTemplate>
-                        <FooterTemplate></table></FooterTemplate>
-                    </asp:Repeater>
-                </div>
-            </ItemTemplate>
-            <FooterTemplate></div></FooterTemplate>
-        </asp:Repeater>
+        <div class="section-title">Generated Listing Packs</div>
+        <asp:Literal ID="litPacks" runat="server" />
     </div>
 </div>
 
-<script>
-    function updateVisibleSortBadges() {
-        $("#imageSortable .img-card").each(function (index) {
-            $(this).find(".sort-badge").first().text("#" + (index + 1));
-        });
-    }
+<div id="pageLoader" class="page-loader-overlay">
+    <div class="page-loader-box">
+        <div class="page-loader-spinner"></div>
+        <div id="loaderTitle" class="page-loader-title">Processing images...</div>
+        <div id="loaderText" class="page-loader-text">
+            Please wait. LamaX is cleaning backgrounds, optimizing images, and preparing your listing pack.
+        </div>
+    </div>
+</div>
 
-    function prepareSortOrderBeforePostback() {
-        var items = [];
-        $("#imageSortable .img-card").each(function (index) {
-            items.push($(this).attr("data-id") + ":" + (index + 1));
-        });
-        $("#<%= hfSortOrder.ClientID %>").val(items.join(","));
-        updateVisibleSortBadges();
-    }
-
-    function bindImageSortable() {
-        var $grid = $("#imageSortable");
-        if (!$grid.length || typeof $grid.sortable !== "function") return;
-
+<script type="text/javascript">
+    function showPageLoader(title, text, clickedButton) {
         try {
-            if ($grid.hasClass("ui-sortable")) $grid.sortable("destroy");
+            var overlay = document.getElementById("pageLoader");
+            var loaderTitle = document.getElementById("loaderTitle");
+            var loaderText = document.getElementById("loaderText");
+
+            if (loaderTitle && title) loaderTitle.innerText = title;
+            if (loaderText && text) loaderText.innerText = text;
+
+            if (overlay) overlay.classList.add("show");
+
+            var buttons = document.querySelectorAll(".btnx");
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].setAttribute("disabled", "disabled");
+                buttons[i].classList.add("disabled");
+            }
+
+            if (clickedButton) {
+                if (clickedButton.value !== undefined) clickedButton.value = "Please wait...";
+                if (clickedButton.innerText !== undefined) clickedButton.innerText = "Please wait...";
+            }
         } catch (e) { }
 
-        $grid.sortable({
-            items: "> .img-card",
-            handle: ".drag-handle",
-            placeholder: "sortable-placeholder",
-            tolerance: "pointer",
-            forcePlaceholderSize: true,
-            update: function () {
-                prepareSortOrderBeforePostback();
-            },
-            stop: function () {
-                prepareSortOrderBeforePostback();
-            }
-        });
-
-        $grid.disableSelection();
-        prepareSortOrderBeforePostback();
+        return true;
     }
 
-    $(document).ready(function () {
-        bindImageSortable();
-        updateVisibleSortBadges();
+    function hidePageLoader() {
+        try {
+            var overlay = document.getElementById("pageLoader");
+            if (overlay) overlay.classList.remove("show");
+
+            var buttons = document.querySelectorAll(".btnx");
+            for (var i = 0; i < buttons.length; i++) {
+                buttons[i].removeAttribute("disabled");
+                buttons[i].classList.remove("disabled");
+            }
+        } catch (e) { }
+    }
+
+    window.addEventListener("pageshow", function () {
+        hidePageLoader();
     });
 </script>
 

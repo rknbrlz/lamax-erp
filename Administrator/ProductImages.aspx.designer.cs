@@ -15,6 +15,15 @@ namespace Feniks.Administrator
     {
 
         /// <summary>
+        /// lblMsg control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblMsg;
+
+        /// <summary>
         /// txtSKU control.
         /// </summary>
         /// <remarks>
@@ -78,15 +87,6 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.CheckBox chkIsPrimary;
 
         /// <summary>
-        /// chkUseAiBgRemoval control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.CheckBox chkUseAiBgRemoval;
-
-        /// <summary>
         /// chkAutoWhiteBg control.
         /// </summary>
         /// <remarks>
@@ -114,6 +114,15 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.CheckBox chkSoftShadow;
 
         /// <summary>
+        /// chkDeleteOldPacks control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.CheckBox chkDeleteOldPacks;
+
+        /// <summary>
         /// btnLoad control.
         /// </summary>
         /// <remarks>
@@ -130,15 +139,6 @@ namespace Feniks.Administrator
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button btnUpload;
-
-        /// <summary>
-        /// btnSaveOrder control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnSaveOrder;
 
         /// <summary>
         /// btnGeneratePacks control.
@@ -159,22 +159,13 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.Button btnLoadPacks;
 
         /// <summary>
-        /// lblMsg control.
+        /// lnkDownloadAllPacks control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Label lblMsg;
-
-        /// <summary>
-        /// hfSortOrder control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.HiddenField hfSortOrder;
+        protected global::System.Web.UI.WebControls.HyperLink lnkDownloadAllPacks;
 
         /// <summary>
         /// rptImages control.
@@ -186,12 +177,12 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.Repeater rptImages;
 
         /// <summary>
-        /// rptPacks control.
+        /// litPacks control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.Repeater rptPacks;
+        protected global::System.Web.UI.WebControls.Literal litPacks;
     }
 }

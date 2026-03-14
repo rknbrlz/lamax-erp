@@ -54,6 +54,8 @@
     <Reference Include="System" />
     <Reference Include="System.Data" />
     <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ServiceModel" />
@@ -204,6 +206,7 @@
     <Content Include="Administrator\DashboardApi.ashx" />
     <Content Include="Images\loginback.png" />
     <Content Include="ProductImageHandler.ashx" />
+    <Content Include="Administrator\ProductImageDownload.ashx" />
     <None Include="Properties\PublishProfiles\FolderProfile.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - Web Deploy.pubxml" />
@@ -407,6 +410,9 @@
     </Compile>
     <Compile Include="Administrator\ProductEdit.aspx.designer.cs">
       <DependentUpon>ProductEdit.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\ProductImageDownload.ashx.cs">
+      <DependentUpon>ProductImageDownload.ashx</DependentUpon>
     </Compile>
     <Compile Include="Administrator\ProductList.aspx.cs">
       <DependentUpon>ProductList.aspx</DependentUpon>
