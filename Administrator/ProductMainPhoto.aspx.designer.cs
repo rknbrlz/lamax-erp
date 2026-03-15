@@ -11,7 +11,7 @@ namespace Feniks.Administrator
 {
 
 
-    public partial class ProductImages
+    public partial class ProductMainPhoto
     {
 
         /// <summary>
@@ -60,13 +60,13 @@ namespace Feniks.Administrator
         protected global::System.Web.UI.WebControls.CheckBox chkCenterSubject;
 
         /// <summary>
-        /// chkSoftShadow control.
+        /// chkUseShadow control.
         /// </summary>
         /// <remarks>
         /// Auto-generated field.
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
-        protected global::System.Web.UI.WebControls.CheckBox chkSoftShadow;
+        protected global::System.Web.UI.WebControls.CheckBox chkUseShadow;
 
         /// <summary>
         /// btnLoad control.
@@ -94,6 +94,15 @@ namespace Feniks.Administrator
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button btnDelete;
+
+        /// <summary>
+        /// lnkPreview control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.HyperLink lnkPreview;
 
         /// <summary>
         /// litPreview control.

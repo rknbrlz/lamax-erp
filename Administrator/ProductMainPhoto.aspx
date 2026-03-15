@@ -1,4 +1,4 @@
-﻿<%@ Page Title="Product Photo" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="ProductImages.aspx.cs" Inherits="Feniks.Administrator.ProductImages" %>
+﻿<%@ Page Title="Amazon Main Photo" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="ProductMainPhoto.aspx.cs" Inherits="Feniks.Administrator.ProductMainPhoto" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
 
@@ -89,9 +89,9 @@
     }
 
     .btn-primaryx { background:#2563eb; color:#fff; }
-    .btn-successx { background:#16a34a; color:#fff; }
     .btn-lightx   { background:#fff; color:#111827; border-color:#d1d5db; }
     .btn-dangerx  { background:#dc2626; color:#fff; }
+    .btn-darkx    { background:#111827; color:#fff; }
 
     .btnx[disabled],
     .btnx.disabled {
@@ -108,7 +108,7 @@
     }
 
     .preview-box {
-        width:280px;
+        width:320px;
     }
 
     .preview-image {
@@ -125,11 +125,7 @@
         margin-top:10px;
         font-size:13px;
         color:#6b7280;
-    }
-
-    .alert {
-        margin-bottom:12px;
-        border-radius:10px;
+        line-height:1.5;
     }
 
     .empty-box {
@@ -139,6 +135,23 @@
         text-align:center;
         color:#9ca3af;
         background:#fafafa;
+        width:320px;
+    }
+
+    .alert {
+        margin-bottom:12px;
+        border-radius:10px;
+    }
+
+    .help-box {
+        margin-top:12px;
+        padding:12px 14px;
+        border-radius:12px;
+        background:#f8fafc;
+        border:1px solid #e5e7eb;
+        color:#475569;
+        font-size:12px;
+        line-height:1.6;
     }
 
     .page-loader-overlay {
@@ -202,9 +215,9 @@
 
 <div class="page-wrap">
     <div class="card-box">
-        <div class="page-title">Primary Product Photo</div>
+        <div class="page-title">Amazon Main Photo</div>
         <div class="page-subtitle">
-            Upload a single image for the SKU. LamaX will clean the background to white and save one main photo.
+            Upload one image for a SKU. LamaX will save one Amazon-style main image directly on the product record.
         </div>
 
         <asp:Label ID="lblMsg" runat="server" EnableViewState="false" />
@@ -221,33 +234,36 @@
         </div>
 
         <div class="option-row">
-            <label><asp:CheckBox ID="chkAutoWhiteBg" runat="server" Checked="true" /> Auto clean light background to white</label>
-            <label><asp:CheckBox ID="chkCenterSubject" runat="server" Checked="true" /> Center subject automatically</label>
-            <label><asp:CheckBox ID="chkSoftShadow" runat="server" /> Add soft shadow</label>
+            <label><asp:CheckBox ID="chkAutoWhiteBg" runat="server" Checked="true" /> Force clean white background</label>
+            <label><asp:CheckBox ID="chkCenterSubject" runat="server" Checked="true" /> Center subject</label>
+            <label><asp:CheckBox ID="chkUseShadow" runat="server" /> Add soft shadow</label>
         </div>
 
         <div class="btn-row">
             <asp:Button ID="btnLoad" runat="server" Text="Load Photo" CssClass="btnx btn-lightx"
                 OnClick="btnLoad_Click"
-                OnClientClick="return showPageLoader('Loading photo...', 'Please wait while LamaX loads the saved product photo.', this);" />
+                OnClientClick="return showPageLoader('Loading photo...', 'Please wait while LamaX loads the saved photo.', this);" />
 
             <asp:Button ID="btnUpload" runat="server" Text="Upload Photo" CssClass="btnx btn-primaryx"
                 OnClick="btnUpload_Click"
-                OnClientClick="return showPageLoader('Uploading photo...', 'Please wait while LamaX processes and saves the image.', this);" />
+                OnClientClick="return showPageLoader('Uploading photo...', 'Please wait while LamaX saves the image.', this);" />
 
             <asp:Button ID="btnDelete" runat="server" Text="Delete Photo" CssClass="btnx btn-dangerx"
                 OnClick="btnDelete_Click"
-                OnClientClick="return confirm('Delete the saved photo for this SKU?');" />
+                OnClientClick="return confirm('Delete the saved main photo for this SKU?');" />
+
+            <asp:HyperLink ID="lnkPreview" runat="server" CssClass="btnx btn-darkx" Text="Open Photo" Target="_blank" />
+        </div>
+
+        <div class="help-box">
+            This version writes directly to T_Product.Photo and uses the existing ProductPhoto handler for preview.
         </div>
     </div>
 
     <div class="card-box">
-        <div class="page-title" style="font-size:22px;">Saved Photo</div>
-
+        <div class="page-title" style="font-size:22px;">Saved Photo Preview</div>
         <div class="preview-wrap">
-            <div class="preview-box">
-                <asp:Literal ID="litPreview" runat="server" />
-            </div>
+            <asp:Literal ID="litPreview" runat="server" />
         </div>
     </div>
 </div>
@@ -256,9 +272,7 @@
     <div class="page-loader-box">
         <div class="page-loader-spinner"></div>
         <div id="loaderTitle" class="page-loader-title">Processing...</div>
-        <div id="loaderText" class="page-loader-text">
-            Please wait.
-        </div>
+        <div id="loaderText" class="page-loader-text">Please wait.</div>
     </div>
 </div>
 

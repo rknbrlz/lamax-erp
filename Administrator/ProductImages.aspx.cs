@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
@@ -9,18 +8,16 @@ using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Web;
 using System.Web.UI;
-using System.Web.UI.WebControls;
 using DrawingImage = System.Drawing.Image;
 
 namespace Feniks.Administrator
 {
     public partial class ProductImages : Page
     {
-        private const int MaxUploadBytesPerFile = 10 * 1024 * 1024; // 10 MB
-        private const int MaxLongSide = 2200;
+        private const int MaxUploadBytesPerFile = 10 * 1024 * 1024;
+        private const int MaxLongSide = 1800;
         private const long JpegQuality = 92L;
 
         private string ConnectionString
@@ -33,17 +30,13 @@ namespace Feniks.Administrator
             if (!IsPostBack)
             {
                 if (fuImage != null)
-                {
-                    fuImage.Attributes["multiple"] = "multiple";
-                    fuImage.Attributes["accept"] = ".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp";
-                }
+                    fuImage.Attributes["accept"] = ".jpg,.jpeg,.png,image/jpeg,image/png";
 
                 string sku = Request.QueryString["sku"];
                 if (!string.IsNullOrWhiteSpace(sku))
                 {
                     txtSKU.Text = sku.Trim();
-                    BindImages();
-                    BindPacks();
+                    BindPreview();
                 }
             }
 
@@ -53,23 +46,12 @@ namespace Feniks.Administrator
                 "if (typeof hidePageLoader === 'function') { hidePageLoader(); }",
                 true
             );
-
-            SetDownloadLinks();
         }
 
         protected void btnLoad_Click(object sender, EventArgs e)
         {
             ClearMessage();
-            BindImages();
-            BindPacks();
-            SetDownloadLinks();
-        }
-
-        protected void btnLoadPacks_Click(object sender, EventArgs e)
-        {
-            ClearMessage();
-            BindPacks();
-            SetDownloadLinks();
+            BindPreview();
         }
 
         protected void btnUpload_Click(object sender, EventArgs e)
@@ -85,98 +67,52 @@ namespace Feniks.Administrator
                     return;
                 }
 
-                int existingCount = GetImageCountBySku(sku);
-
-                HttpFileCollection files = Request.Files;
-                List<HttpPostedFile> imageFiles = new List<HttpPostedFile>();
-
-                for (int i = 0; i < files.Count; i++)
+                if (fuImage == null || !fuImage.HasFile)
                 {
-                    HttpPostedFile file = files[i];
-                    if (file == null || file.ContentLength <= 0) continue;
-                    if (!string.IsNullOrWhiteSpace(file.FileName))
-                        imageFiles.Add(file);
-                }
-
-                if (imageFiles.Count == 0)
-                {
-                    ShowError("Please select at least one image.");
+                    ShowError("Please select one image.");
                     return;
                 }
 
-                if (existingCount + imageFiles.Count > 4)
+                string fileName = Path.GetFileName(fuImage.FileName);
+                string ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+                if (ext != ".jpg" && ext != ".jpeg" && ext != ".png")
                 {
-                    ShowError("This version supports maximum 4 source images per SKU.");
+                    ShowError("Only JPG and PNG files are supported.");
                     return;
                 }
 
-                int nextSortOrder = GetInitialSortOrder(sku);
-                bool firstShouldBePrimary = chkIsPrimary.Checked;
-
-                string imageRole = string.IsNullOrWhiteSpace(ddlImageRole.SelectedValue)
-                    ? "MAIN"
-                    : ddlImageRole.SelectedValue.Trim().ToUpperInvariant();
-
-                int insertedCount = 0;
-                List<string> info = new List<string>();
-
-                foreach (HttpPostedFile postedFile in imageFiles)
+                if (fuImage.PostedFile.ContentLength > MaxUploadBytesPerFile)
                 {
-                    string originalFileName = Path.GetFileName(postedFile.FileName);
-                    string ext = Path.GetExtension(originalFileName).ToLowerInvariant();
-
-                    if (!IsAllowedExtension(ext))
-                    {
-                        info.Add(originalFileName + ": skipped, invalid extension.");
-                        continue;
-                    }
-
-                    if (postedFile.ContentLength > MaxUploadBytesPerFile)
-                    {
-                        info.Add(originalFileName + ": skipped, file is larger than 10 MB.");
-                        continue;
-                    }
-
-                    byte[] originalData = ReadFully(postedFile.InputStream);
-                    if (originalData == null || originalData.Length == 0)
-                    {
-                        info.Add(originalFileName + ": skipped, file could not be read.");
-                        continue;
-                    }
-
-                    string finalContentType = GetSafeContentType(ext, postedFile.ContentType);
-                    string finalFileName = originalFileName;
-
-                    bool isPrimaryForThisImage = (existingCount == 0 && insertedCount == 0 && firstShouldBePrimary);
-
-                    InsertImage(
-                        sku,
-                        originalData,
-                        finalFileName,
-                        finalContentType,
-                        originalData.Length,
-                        nextSortOrder,
-                        isPrimaryForThisImage,
-                        string.IsNullOrWhiteSpace(ddlMarketplace.SelectedValue) ? null : ddlMarketplace.SelectedValue,
-                        imageRole,
-                        User != null && User.Identity != null ? User.Identity.Name : "system"
-                    );
-
-                    insertedCount++;
-                    info.Add(originalFileName + ": " + FormatSize(originalData.Length));
-                    nextSortOrder++;
-                }
-
-                if (insertedCount == 0)
-                {
-                    ShowError("No images were uploaded. " + string.Join(" | ", info));
+                    ShowError("File is larger than 10 MB.");
                     return;
                 }
 
-                ShowSuccess(insertedCount + " image(s) uploaded successfully. " + string.Join(" | ", info));
-                BindImages();
-                BindPacks();
-                SetDownloadLinks();
+                byte[] originalData = ReadFully(fuImage.PostedFile.InputStream);
+                if (originalData == null || originalData.Length == 0)
+                {
+                    ShowError("Image could not be read.");
+                    return;
+                }
+
+                byte[] finalData = ProcessSingleMainPhoto(
+                    originalData,
+                    chkAutoWhiteBg.Checked,
+                    chkCenterSubject.Checked,
+                    chkSoftShadow.Checked
+                );
+
+                ReplaceMainPhotoForSku(
+                    sku,
+                    finalData,
+                    Path.GetFileNameWithoutExtension(fileName) + "_main.jpg",
+                    "image/jpeg",
+                    finalData.Length,
+                    User != null && User.Identity != null ? User.Identity.Name : "system"
+                );
+
+                ShowSuccess("Main product photo saved successfully.");
+                BindPreview();
             }
             catch (Exception ex)
             {
@@ -184,7 +120,7 @@ namespace Feniks.Administrator
             }
         }
 
-        protected void btnGeneratePacks_Click(object sender, EventArgs e)
+        protected void btnDelete_Click(object sender, EventArgs e)
         {
             ClearMessage();
 
@@ -193,113 +129,13 @@ namespace Feniks.Administrator
                 string sku = txtSKU.Text.Trim();
                 if (string.IsNullOrWhiteSpace(sku))
                 {
-                    ShowError("Please enter SKU.");
+                    ShowError("Please enter a SKU.");
                     return;
                 }
 
-                DataTable sourceImages = GetSourceImagesForPack(sku);
-                if (sourceImages.Rows.Count == 0)
-                {
-                    ShowError("No source images found for this SKU.");
-                    return;
-                }
-
-                if (chkDeleteOldPacks.Checked)
-                    DeleteGeneratedPackImages(sku);
-
-                Dictionary<string, SourceImageItem> sourceMap = BuildSourceRoleMap(sourceImages);
-                List<ChannelPackSpec> channels = BuildChannelSpecs();
-
-                foreach (ChannelPackSpec channel in channels)
-                {
-                    int nextSort = GetInitialSortOrder(sku);
-
-                    foreach (ChannelImageSpec imageSpec in channel.Images)
-                    {
-                        SourceImageItem source = ResolveSourceForRole(sourceMap, imageSpec.SourceRoleFallbacks);
-                        if (source == null || source.ImageData == null || source.ImageData.Length == 0)
-                            continue;
-
-                        byte[] processed = ProcessMarketplaceImage(
-                            source.ImageData,
-                            imageSpec.OutputRole,
-                            imageSpec.Options,
-                            ".jpg"
-                        );
-
-                        string fileName = BuildGeneratedFileName(sku, channel.Marketplace, imageSpec.OutputRole);
-
-                        InsertImage(
-                            sku,
-                            processed,
-                            fileName,
-                            "image/jpeg",
-                            processed.Length,
-                            nextSort,
-                            false,
-                            channel.Marketplace,
-                            imageSpec.OutputRole,
-                            User != null && User.Identity != null ? User.Identity.Name : "system"
-                        );
-
-                        nextSort++;
-                    }
-                }
-
-                ShowSuccess("Generated listing packs created successfully.");
-                BindImages();
-                BindPacks();
-                SetDownloadLinks();
-            }
-            catch (Exception ex)
-            {
-                ShowError("Error while generating packs: " + ex.Message);
-            }
-        }
-
-        protected void rptImages_ItemCommand(object source, RepeaterCommandEventArgs e)
-        {
-            ClearMessage();
-
-            try
-            {
-                int imageId;
-                if (!int.TryParse(Convert.ToString(e.CommandArgument), out imageId))
-                {
-                    ShowError("Invalid image ID.");
-                    return;
-                }
-
-                if (e.CommandName == "makeprimary")
-                {
-                    using (SqlConnection con = new SqlConnection(ConnectionString))
-                    using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImage_SetPrimary", con))
-                    {
-                        cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@ProductImageID", imageId);
-                        con.Open();
-                        cmd.ExecuteNonQuery();
-                    }
-
-                    ShowSuccess("Primary image updated.");
-                }
-                else if (e.CommandName == "deleteimg")
-                {
-                    using (SqlConnection con = new SqlConnection(ConnectionString))
-                    using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImage_Delete", con))
-                    {
-                        cmd.CommandType = CommandType.StoredProcedure;
-                        cmd.Parameters.AddWithValue("@ProductImageID", imageId);
-                        con.Open();
-                        cmd.ExecuteNonQuery();
-                    }
-
-                    ShowSuccess("Image deleted.");
-                }
-
-                BindImages();
-                BindPacks();
-                SetDownloadLinks();
+                DeleteMainPhotoForSku(sku);
+                ShowSuccess("Saved photo deleted.");
+                BindPreview();
             }
             catch (Exception ex)
             {
@@ -307,13 +143,98 @@ namespace Feniks.Administrator
             }
         }
 
+        private void BindPreview()
+        {
+            string sku = txtSKU.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(sku))
+            {
+                litPreview.Text = "<div class='empty-box'>Enter a SKU to see the saved photo.</div>";
+                return;
+            }
+
+            DataRow row = GetMainPhotoBySku(sku);
+            if (row == null)
+            {
+                litPreview.Text = "<div class='empty-box'>No saved photo for this SKU.</div>";
+                return;
+            }
+
+            int imageId = Convert.ToInt32(row["ProductImageID"]);
+            string fileName = Convert.ToString(row["FileName"]);
+
+            litPreview.Text =
+                "<img class='preview-image' src='" + ResolveUrl("~/Administrator/ProductPhoto.ashx?id=" + imageId) + "' alt='' />" +
+                "<div class='preview-meta'><strong>File:</strong> " + HttpUtility.HtmlEncode(fileName) + "</div>";
+        }
+
+        private void ReplaceMainPhotoForSku(string sku, byte[] imageData, string fileName, string contentType, int fileSizeBytes, string createdBy)
+        {
+            DeleteMainPhotoForSku(sku);
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImage_Insert", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@SKU", sku);
+                cmd.Parameters.AddWithValue("@ImageData", imageData);
+                cmd.Parameters.AddWithValue("@FileName", fileName);
+                cmd.Parameters.AddWithValue("@ContentType", contentType);
+                cmd.Parameters.AddWithValue("@FileSizeBytes", fileSizeBytes);
+                cmd.Parameters.AddWithValue("@SortOrder", 1);
+                cmd.Parameters.AddWithValue("@IsPrimary", true);
+                cmd.Parameters.AddWithValue("@Marketplace", DBNull.Value);
+                cmd.Parameters.AddWithValue("@ImageRole", "MAIN");
+                cmd.Parameters.AddWithValue("@CreatedBy", string.IsNullOrWhiteSpace(createdBy) ? "system" : createdBy);
+
+                con.Open();
+                cmd.ExecuteScalar();
+            }
+        }
+
+        private void DeleteMainPhotoForSku(string sku)
+        {
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand(@"
+DELETE FROM dbo.T_ProductImage
+WHERE SKU = @SKU
+  AND ISNULL(ImageRole, '') = 'MAIN'
+  AND ISNULL(FileName, '') NOT LIKE '%_pack_%';", con))
+            {
+                cmd.Parameters.AddWithValue("@SKU", sku);
+                con.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private DataRow GetMainPhotoBySku(string sku)
+        {
+            DataTable dt = new DataTable();
+
+            using (SqlConnection con = new SqlConnection(ConnectionString))
+            using (SqlCommand cmd = new SqlCommand(@"
+SELECT TOP 1 ProductImageID, SKU, FileName, ContentType, SortOrder, IsPrimary
+FROM dbo.T_ProductImage
+WHERE SKU = @SKU
+  AND ISNULL(ImageRole, '') = 'MAIN'
+  AND ISNULL(FileName, '') NOT LIKE '%_pack_%'
+ORDER BY ProductImageID DESC;", con))
+            {
+                cmd.Parameters.AddWithValue("@SKU", sku);
+
+                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
+                {
+                    da.Fill(dt);
+                }
+            }
+
+            return dt.Rows.Count > 0 ? dt.Rows[0] : null;
+        }
+
         private void ClearMessage()
         {
-            if (lblMsg != null)
-            {
-                lblMsg.Text = "";
-                lblMsg.CssClass = "";
-            }
+            lblMsg.Text = "";
+            lblMsg.CssClass = "";
         }
 
         private void ShowError(string message)
@@ -328,464 +249,6 @@ namespace Feniks.Administrator
             lblMsg.Text = HttpUtility.HtmlEncode(message);
         }
 
-        private void SetDownloadLinks()
-        {
-            if (lnkDownloadAllPacks == null)
-                return;
-
-            string sku = txtSKU.Text.Trim();
-            if (string.IsNullOrWhiteSpace(sku))
-            {
-                lnkDownloadAllPacks.NavigateUrl = "#";
-                lnkDownloadAllPacks.Visible = false;
-                return;
-            }
-
-            lnkDownloadAllPacks.NavigateUrl =
-                ResolveUrl("~/Administrator/ProductImageDownload.ashx?mode=allpackszip&sku=" + HttpUtility.UrlEncode(sku));
-            lnkDownloadAllPacks.Target = "_blank";
-            lnkDownloadAllPacks.Visible = true;
-        }
-
-        private int GetImageCountBySku(string sku)
-        {
-            using (SqlConnection con = new SqlConnection(ConnectionString))
-            using (SqlCommand cmd = new SqlCommand(@"
-SELECT COUNT(1)
-FROM dbo.T_ProductImage
-WHERE SKU = @SKU
-  AND ISNULL(FileName, '') NOT LIKE '%_pack_%';", con))
-            {
-                cmd.Parameters.AddWithValue("@SKU", sku);
-                con.Open();
-
-                object result = cmd.ExecuteScalar();
-                int count;
-                if (result != null && int.TryParse(result.ToString(), out count))
-                    return count;
-
-                return 0;
-            }
-        }
-
-        private int GetInitialSortOrder(string sku)
-        {
-            int parsedSort;
-            if (int.TryParse(txtSortOrder.Text.Trim(), out parsedSort) && parsedSort > 0)
-                return parsedSort;
-
-            using (SqlConnection con = new SqlConnection(ConnectionString))
-            using (SqlCommand cmd = new SqlCommand(@"
-SELECT ISNULL(MAX(SortOrder), 0) + 1
-FROM dbo.T_ProductImage
-WHERE SKU = @SKU;", con))
-            {
-                cmd.Parameters.AddWithValue("@SKU", sku);
-                con.Open();
-
-                object result = cmd.ExecuteScalar();
-                int next;
-                if (result != null && int.TryParse(result.ToString(), out next) && next > 0)
-                    return next;
-            }
-
-            return 1;
-        }
-
-        private void InsertImage(
-            string sku,
-            byte[] imageData,
-            string fileName,
-            string contentType,
-            int fileSizeBytes,
-            int sortOrder,
-            bool isPrimary,
-            string marketplace,
-            string imageRole,
-            string createdBy)
-        {
-            using (SqlConnection con = new SqlConnection(ConnectionString))
-            using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImage_Insert", con))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@SKU", sku);
-                cmd.Parameters.AddWithValue("@ImageData", imageData);
-                cmd.Parameters.AddWithValue("@FileName", fileName);
-                cmd.Parameters.AddWithValue("@ContentType", contentType);
-                cmd.Parameters.AddWithValue("@FileSizeBytes", fileSizeBytes);
-                cmd.Parameters.AddWithValue("@SortOrder", sortOrder);
-                cmd.Parameters.AddWithValue("@IsPrimary", isPrimary);
-                cmd.Parameters.AddWithValue("@Marketplace", string.IsNullOrWhiteSpace(marketplace) ? (object)DBNull.Value : marketplace);
-                cmd.Parameters.AddWithValue("@ImageRole", string.IsNullOrWhiteSpace(imageRole) ? (object)DBNull.Value : imageRole);
-                cmd.Parameters.AddWithValue("@CreatedBy", string.IsNullOrWhiteSpace(createdBy) ? "system" : createdBy);
-
-                con.Open();
-                cmd.ExecuteScalar();
-            }
-        }
-
-        private void BindImages()
-        {
-            string sku = txtSKU.Text.Trim();
-            if (string.IsNullOrWhiteSpace(sku))
-            {
-                rptImages.DataSource = null;
-                rptImages.DataBind();
-                return;
-            }
-
-            DataTable dt = new DataTable();
-
-            using (SqlConnection con = new SqlConnection(ConnectionString))
-            using (SqlCommand cmd = new SqlCommand("dbo.sp_ProductImage_ListBySKU", con))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@SKU", sku);
-
-                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-                {
-                    da.Fill(dt);
-                }
-            }
-
-            DataView dv = dt.DefaultView;
-            dv.RowFilter = "ISNULL(FileName, '') NOT LIKE '%_pack_%'";
-            dv.Sort = "IsPrimary DESC, SortOrder ASC, ProductImageID ASC";
-
-            rptImages.DataSource = dv;
-            rptImages.DataBind();
-        }
-
-        private void BindPacks()
-        {
-            string sku = txtSKU.Text.Trim();
-            if (string.IsNullOrWhiteSpace(sku))
-            {
-                litPacks.Text = "<div class='meta-text'>Enter SKU and load packs.</div>";
-                return;
-            }
-
-            DataTable dt = GetGeneratedPackImages(sku);
-            if (dt.Rows.Count == 0)
-            {
-                litPacks.Text = "<div class='meta-text'>No generated listing packs found yet.</div>";
-                return;
-            }
-
-            StringBuilder sb = new StringBuilder();
-
-            var groups = dt.AsEnumerable()
-                .GroupBy(r => Convert.ToString(r["Marketplace"]).ToUpperInvariant())
-                .OrderBy(g => g.Key);
-
-            sb.Append("<div class='packs-grid'>");
-
-            foreach (var g in groups)
-            {
-                string marketplace = g.Key;
-
-                sb.Append("<div class='pack-card'>");
-                sb.AppendFormat("<div class='pack-title'>{0} Listing Pack</div>", HttpUtility.HtmlEncode(ToDisplayMarketplace(marketplace)));
-                sb.AppendFormat("<div class='pack-meta'>{0} · {1}</div>",
-                    HttpUtility.HtmlEncode(marketplace),
-                    DateTime.Now.ToString("dd.MM.yyyy HH:mm", CultureInfo.InvariantCulture));
-
-                sb.Append("<div class='pack-actions'>");
-                sb.AppendFormat(
-                    "<a class='btn-link-mini btn-darkx' target='_blank' href='{0}'>Download {1} ZIP</a>",
-                    ResolveUrl("~/Administrator/ProductImageDownload.ashx?mode=marketplacezip&sku=" + HttpUtility.UrlEncode(sku) + "&marketplace=" + HttpUtility.UrlEncode(marketplace)),
-                    HttpUtility.HtmlEncode(ToDisplayMarketplace(marketplace))
-                );
-                sb.Append("</div>");
-
-                foreach (DataRow row in g.OrderBy(x => Convert.ToInt32(x["SortOrder"])))
-                {
-                    int imageId = Convert.ToInt32(row["ProductImageID"]);
-                    string role = Convert.ToString(row["ImageRole"]);
-                    string fileName = Convert.ToString(row["FileName"]);
-
-                    sb.Append("<div class='pack-item'>");
-                    sb.AppendFormat(
-                        "<img class='pack-thumb' src='{0}' alt='' />",
-                        ResolveUrl("~/Administrator/ProductPhoto.ashx?id=" + imageId)
-                    );
-                    sb.Append("<div style='flex:1;'>");
-                    sb.AppendFormat("<div class='pack-item-title'>{0}</div>", HttpUtility.HtmlEncode(role));
-                    sb.AppendFormat("<div class='pack-item-file'>{0}</div>", HttpUtility.HtmlEncode(fileName));
-                    sb.Append("<div class='pack-item-actions'>");
-                    sb.AppendFormat(
-                        "<a class='btn-mini btn-mini-dark' target='_blank' href='{0}'>Download</a>",
-                        ResolveUrl("~/Administrator/ProductImageDownload.ashx?mode=single&id=" + imageId)
-                    );
-                    sb.Append("</div>");
-                    sb.Append("</div>");
-                    sb.Append("</div>");
-                }
-
-                sb.Append("</div>");
-            }
-
-            sb.Append("</div>");
-            litPacks.Text = sb.ToString();
-        }
-
-        private DataTable GetSourceImagesForPack(string sku)
-        {
-            DataTable dt = new DataTable();
-
-            using (SqlConnection con = new SqlConnection(ConnectionString))
-            using (SqlCommand cmd = new SqlCommand(@"
-SELECT ProductImageID, SKU, ImageData, FileName, ContentType, SortOrder, IsPrimary, Marketplace, ImageRole
-FROM dbo.T_ProductImage
-WHERE SKU = @SKU
-  AND ISNULL(FileName, '') NOT LIKE '%_pack_%'
-ORDER BY IsPrimary DESC, SortOrder ASC, ProductImageID ASC;", con))
-            {
-                cmd.Parameters.AddWithValue("@SKU", sku);
-                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-                {
-                    da.Fill(dt);
-                }
-            }
-
-            return dt;
-        }
-
-        private DataTable GetGeneratedPackImages(string sku)
-        {
-            DataTable dt = new DataTable();
-
-            using (SqlConnection con = new SqlConnection(ConnectionString))
-            using (SqlCommand cmd = new SqlCommand(@"
-SELECT ProductImageID, SKU, FileName, SortOrder, IsPrimary, Marketplace, ImageRole
-FROM dbo.T_ProductImage
-WHERE SKU = @SKU
-  AND ISNULL(FileName, '') LIKE '%_pack_%'
-ORDER BY Marketplace, SortOrder ASC, ProductImageID ASC;", con))
-            {
-                cmd.Parameters.AddWithValue("@SKU", sku);
-                using (SqlDataAdapter da = new SqlDataAdapter(cmd))
-                {
-                    da.Fill(dt);
-                }
-            }
-
-            return dt;
-        }
-
-        private void DeleteGeneratedPackImages(string sku)
-        {
-            using (SqlConnection con = new SqlConnection(ConnectionString))
-            using (SqlCommand cmd = new SqlCommand(@"
-DELETE FROM dbo.T_ProductImage
-WHERE SKU = @SKU
-  AND ISNULL(FileName, '') LIKE '%_pack_%';", con))
-            {
-                cmd.Parameters.AddWithValue("@SKU", sku);
-                con.Open();
-                cmd.ExecuteNonQuery();
-            }
-        }
-
-        private ImageProcessOptions BuildSourceOptions()
-        {
-            return new ImageProcessOptions
-            {
-                CanvasSize = 2000,
-                FillRatio = 0.82,
-                AutoWhiteBackground = chkAutoWhiteBg.Checked,
-                CenterSubject = chkCenterSubject.Checked,
-                SoftShadow = chkSoftShadow.Checked,
-                EdgeThreshold = 242,
-                ColorTolerance = 34,
-                FeatherRadius = 2,
-                ShadowOpacity = 28,
-                ShadowBlur = 22,
-                ShadowOffsetY = 26,
-                BackgroundColor = Color.White
-            };
-        }
-
-        private List<ChannelPackSpec> BuildChannelSpecs()
-        {
-            return new List<ChannelPackSpec>
-            {
-                new ChannelPackSpec
-                {
-                    Marketplace = "WEBSITE",
-                    Images = new List<ChannelImageSpec>
-                    {
-                        MakeSpec("MAIN",   new[] { "MAIN", "ANGLE", "DETAIL", "SIDE" }, 1800, 0.84, true),
-                        MakeSpec("HAND",   new[] { "HAND", "ANGLE", "DETAIL", "SIDE" }, 1800, 0.82, true),
-                        MakeSpec("DETAIL", new[] { "DETAIL", "ANGLE", "MAIN", "SIDE" }, 1800, 0.90, false),
-                        MakeSpec("SIDE",   new[] { "SIDE", "ANGLE", "DETAIL", "MAIN" }, 1800, 0.84, false)
-                    }
-                },
-                new ChannelPackSpec
-                {
-                    Marketplace = "EBAY",
-                    Images = new List<ChannelImageSpec>
-                    {
-                        MakeSpec("MAIN",   new[] { "MAIN", "ANGLE", "DETAIL", "SIDE" }, 1600, 0.83, false),
-                        MakeSpec("ANGLE",  new[] { "ANGLE", "SIDE", "DETAIL", "MAIN" }, 1600, 0.84, false),
-                        MakeSpec("DETAIL", new[] { "DETAIL", "ANGLE", "MAIN", "SIDE" }, 1600, 0.90, false),
-                        MakeSpec("SIDE",   new[] { "SIDE", "ANGLE", "DETAIL", "MAIN" }, 1600, 0.84, false)
-                    }
-                },
-                new ChannelPackSpec
-                {
-                    Marketplace = "ETSY",
-                    Images = new List<ChannelImageSpec>
-                    {
-                        MakeSpec("MAIN",   new[] { "MAIN", "ANGLE", "DETAIL", "SIDE" }, 2000, 0.80, false),
-                        MakeSpec("HAND",   new[] { "HAND", "ANGLE", "DETAIL", "SIDE" }, 2000, 0.82, true),
-                        MakeSpec("DETAIL", new[] { "DETAIL", "ANGLE", "MAIN", "SIDE" }, 2000, 0.92, false),
-                        MakeSpec("SIDE",   new[] { "SIDE", "ANGLE", "DETAIL", "MAIN" }, 2000, 0.84, false)
-                    }
-                },
-                new ChannelPackSpec
-                {
-                    Marketplace = "AMAZON",
-                    Images = new List<ChannelImageSpec>
-                    {
-                        MakeSpec("MAIN",   new[] { "MAIN", "ANGLE", "DETAIL", "SIDE" }, 2000, 0.88, false),
-                        MakeSpec("ANGLE",  new[] { "ANGLE", "SIDE", "DETAIL", "MAIN" }, 2000, 0.86, false),
-                        MakeSpec("DETAIL", new[] { "DETAIL", "ANGLE", "MAIN", "SIDE" }, 2000, 0.92, false),
-                        MakeSpec("SIDE",   new[] { "SIDE", "ANGLE", "DETAIL", "MAIN" }, 2000, 0.86, false)
-                    }
-                }
-            };
-        }
-
-        private ChannelImageSpec MakeSpec(string outputRole, string[] fallbacks, int canvas, double fillRatio, bool shadow)
-        {
-            return new ChannelImageSpec
-            {
-                OutputRole = outputRole,
-                SourceRoleFallbacks = fallbacks,
-                Options = new ImageProcessOptions
-                {
-                    CanvasSize = canvas,
-                    FillRatio = fillRatio,
-                    AutoWhiteBackground = true,
-                    CenterSubject = true,
-                    SoftShadow = shadow,
-                    EdgeThreshold = 242,
-                    ColorTolerance = 34,
-                    FeatherRadius = 2,
-                    ShadowOpacity = shadow ? 26 : 0,
-                    ShadowBlur = shadow ? 20 : 0,
-                    ShadowOffsetY = shadow ? 20 : 0,
-                    BackgroundColor = Color.White
-                }
-            };
-        }
-
-        private Dictionary<string, SourceImageItem> BuildSourceRoleMap(DataTable dt)
-        {
-            Dictionary<string, SourceImageItem> map = new Dictionary<string, SourceImageItem>(StringComparer.OrdinalIgnoreCase);
-            List<SourceImageItem> all = new List<SourceImageItem>();
-
-            foreach (DataRow row in dt.Rows)
-            {
-                SourceImageItem item = new SourceImageItem
-                {
-                    ProductImageID = Convert.ToInt32(row["ProductImageID"]),
-                    SKU = Convert.ToString(row["SKU"]),
-                    ImageData = row["ImageData"] as byte[],
-                    FileName = Convert.ToString(row["FileName"]),
-                    Marketplace = Convert.ToString(row["Marketplace"]),
-                    ImageRole = NormalizeRole(Convert.ToString(row["ImageRole"])),
-                    SortOrder = row["SortOrder"] == DBNull.Value ? 0 : Convert.ToInt32(row["SortOrder"]),
-                    IsPrimary = row["IsPrimary"] != DBNull.Value && Convert.ToBoolean(row["IsPrimary"])
-                };
-
-                all.Add(item);
-
-                if (!map.ContainsKey(item.ImageRole))
-                    map[item.ImageRole] = item;
-            }
-
-            SourceImageItem primary = all.FirstOrDefault(x => x.IsPrimary) ?? all.FirstOrDefault();
-            if (primary != null && !map.ContainsKey("MAIN")) map["MAIN"] = primary;
-
-            SourceImageItem second = all.Skip(1).FirstOrDefault() ?? primary;
-            SourceImageItem third = all.Skip(2).FirstOrDefault() ?? second ?? primary;
-            SourceImageItem fourth = all.Skip(3).FirstOrDefault() ?? third ?? second ?? primary;
-
-            if (second != null && !map.ContainsKey("ANGLE")) map["ANGLE"] = second;
-            if (third != null && !map.ContainsKey("DETAIL")) map["DETAIL"] = third;
-            if (fourth != null && !map.ContainsKey("SIDE")) map["SIDE"] = fourth;
-            if (!map.ContainsKey("HAND") && second != null) map["HAND"] = second;
-
-            return map;
-        }
-
-        private SourceImageItem ResolveSourceForRole(Dictionary<string, SourceImageItem> sourceMap, string[] fallbacks)
-        {
-            if (fallbacks == null || fallbacks.Length == 0) return null;
-
-            foreach (string role in fallbacks)
-            {
-                SourceImageItem item;
-                if (sourceMap.TryGetValue(role, out item) && item != null)
-                    return item;
-            }
-
-            return null;
-        }
-
-        private static string BuildGeneratedFileName(string sku, string marketplace, string role)
-        {
-            return string.Format("{0}_pack_{1}_{2}.jpg",
-                SafeName(sku),
-                SafeName(marketplace).ToLowerInvariant(),
-                SafeName(role).ToLowerInvariant());
-        }
-
-        private static string SafeName(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return "x";
-
-            char[] invalid = Path.GetInvalidFileNameChars();
-            StringBuilder sb = new StringBuilder(value.Length);
-
-            foreach (char c in value.Trim())
-            {
-                if (invalid.Contains(c) || char.IsWhiteSpace(c))
-                    sb.Append('_');
-                else
-                    sb.Append(c);
-            }
-
-            return sb.ToString();
-        }
-
-        private static string ToDisplayMarketplace(string marketplace)
-        {
-            switch ((marketplace ?? "").ToUpperInvariant())
-            {
-                case "AMAZON": return "Amazon";
-                case "ETSY": return "Etsy";
-                case "EBAY": return "eBay";
-                case "WEBSITE": return "Website";
-                default: return marketplace;
-            }
-        }
-
-        private static string NormalizeRole(string value)
-        {
-            value = (value ?? "").Trim().ToUpperInvariant();
-            if (string.IsNullOrWhiteSpace(value)) return "GALLERY";
-            return value;
-        }
-
-        private static bool IsAllowedExtension(string ext)
-        {
-            string[] allowed = { ".jpg", ".jpeg", ".png", ".webp" };
-            return allowed.Contains(ext);
-        }
-
         private static byte[] ReadFully(Stream input)
         {
             if (input == null) return null;
@@ -797,11 +260,7 @@ WHERE SKU = @SKU
             }
         }
 
-        private static byte[] ProcessMarketplaceImage(
-            byte[] inputBytes,
-            string imageRole,
-            ImageProcessOptions options,
-            string outputExt)
+        private static byte[] ProcessSingleMainPhoto(byte[] inputBytes, bool autoWhiteBg, bool centerSubject, bool softShadow)
         {
             using (MemoryStream inputStream = new MemoryStream(inputBytes))
             using (DrawingImage sourceImage = DrawingImage.FromStream(inputStream))
@@ -827,18 +286,21 @@ WHERE SKU = @SKU
 
                     bool[,] bgMask = null;
 
-                    if (options.AutoWhiteBackground)
+                    if (autoWhiteBg)
                     {
-                        bgMask = DetectBackgroundMask(working, options.EdgeThreshold, options.ColorTolerance);
-                        ApplyWhiteBackgroundCleanup(working, bgMask, options.FeatherRadius);
+                        bgMask = DetectBackgroundMask(working, 242, 34);
+                        ApplyWhiteBackgroundCleanup(working, bgMask, 2);
                     }
 
-                    Rectangle subjectBounds = GetSubjectBounds(working, bgMask);
+                    Rectangle subjectBounds = centerSubject
+                        ? GetSubjectBounds(working, bgMask)
+                        : new Rectangle(0, 0, working.Width, working.Height);
+
                     if (subjectBounds.Width <= 1 || subjectBounds.Height <= 1)
                         subjectBounds = new Rectangle(0, 0, working.Width, working.Height);
 
                     using (Bitmap crop = CropBitmap(working, subjectBounds))
-                    using (Bitmap canvas = new Bitmap(options.CanvasSize, options.CanvasSize, PixelFormat.Format24bppRgb))
+                    using (Bitmap canvas = new Bitmap(1800, 1800, PixelFormat.Format24bppRgb))
                     {
                         SafeSetResolution(canvas, working.HorizontalResolution, working.VerticalResolution);
 
@@ -848,14 +310,14 @@ WHERE SKU = @SKU
                             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                             g.SmoothingMode = SmoothingMode.HighQuality;
                             g.PixelOffsetMode = PixelOffsetMode.HighQuality;
-                            g.Clear(options.BackgroundColor);
+                            g.Clear(Color.White);
 
-                            Size fit = FitToCanvas(crop.Width, crop.Height, options.CanvasSize, options.CanvasSize, options.FillRatio);
-                            int x = (options.CanvasSize - fit.Width) / 2;
-                            int y = (options.CanvasSize - fit.Height) / 2;
+                            Size fit = FitToCanvas(crop.Width, crop.Height, 1800, 1800, 0.84);
+                            int x = (1800 - fit.Width) / 2;
+                            int y = (1800 - fit.Height) / 2;
 
-                            if (options.SoftShadow)
-                                DrawSoftShadow(g, x, y, fit.Width, fit.Height, options);
+                            if (softShadow)
+                                DrawSoftShadow(g, x, y, fit.Width, fit.Height);
 
                             g.DrawImage(crop, x, y, fit.Width, fit.Height);
                         }
@@ -876,7 +338,7 @@ WHERE SKU = @SKU
             int h = bmp.Height;
             bool[,] visited = new bool[w, h];
             bool[,] bg = new bool[w, h];
-            Queue<Point> q = new Queue<Point>();
+            System.Collections.Generic.Queue<Point> q = new System.Collections.Generic.Queue<Point>();
 
             Action<int, int> enqueue = (x, y) =>
             {
@@ -1050,7 +512,7 @@ WHERE SKU = @SKU
                         continue;
 
                     Color c = bmp.GetPixel(x, y);
-                    if (IsNearWhite(c, 248))
+                    if (c.R >= 248 && c.G >= 248 && c.B >= 248)
                         continue;
 
                     found = true;
@@ -1073,11 +535,6 @@ WHERE SKU = @SKU
             bottom = Math.Min(h - 1, bottom + padY);
 
             return Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
-        }
-
-        private static bool IsNearWhite(Color c, int threshold)
-        {
-            return c.R >= threshold && c.G >= threshold && c.B >= threshold;
         }
 
         private static Bitmap CropBitmap(Bitmap source, Rectangle rect)
@@ -1104,25 +561,23 @@ WHERE SKU = @SKU
             double usableHeight = canvasHeight * fillRatio;
             double ratio = Math.Min(usableWidth / width, usableHeight / height);
 
-            int outW = Math.Max(1, (int)Math.Round(width * ratio));
-            int outH = Math.Max(1, (int)Math.Round(height * ratio));
-
-            return new Size(outW, outH);
+            return new Size(
+                Math.Max(1, (int)Math.Round(width * ratio)),
+                Math.Max(1, (int)Math.Round(height * ratio))
+            );
         }
 
-        private static void DrawSoftShadow(Graphics g, int x, int y, int width, int height, ImageProcessOptions options)
+        private static void DrawSoftShadow(Graphics g, int x, int y, int width, int height)
         {
-            Rectangle shadowRect = new Rectangle(
-                x + Math.Max(2, options.ShadowBlur / 5),
-                y + options.ShadowOffsetY,
-                width,
-                height);
+            Rectangle shadowRect = new Rectangle(x + 4, y + 18, width, height);
 
-            using (GraphicsPath path = RoundedRect(shadowRect, Math.Max(16, width / 10)))
+            using (GraphicsPath path = new GraphicsPath())
             {
-                for (int i = 0; i < options.ShadowBlur; i += 4)
+                path.AddRectangle(shadowRect);
+
+                for (int i = 0; i < 18; i += 4)
                 {
-                    int alpha = Math.Max(1, options.ShadowOpacity - i);
+                    int alpha = Math.Max(1, 22 - i);
                     using (Pen pen = new Pen(Color.FromArgb(alpha, 0, 0, 0), 1 + i))
                     {
                         g.DrawPath(pen, path);
@@ -1131,31 +586,9 @@ WHERE SKU = @SKU
             }
         }
 
-        private static GraphicsPath RoundedRect(Rectangle bounds, int radius)
-        {
-            int diameter = radius * 2;
-            GraphicsPath path = new GraphicsPath();
-
-            if (diameter > bounds.Width) diameter = bounds.Width;
-            if (diameter > bounds.Height) diameter = bounds.Height;
-
-            Rectangle arc = new Rectangle(bounds.Location, new Size(diameter, diameter));
-
-            path.AddArc(arc, 180, 90);
-            arc.X = bounds.Right - diameter;
-            path.AddArc(arc, 270, 90);
-            arc.Y = bounds.Bottom - diameter;
-            path.AddArc(arc, 0, 90);
-            arc.X = bounds.Left;
-            path.AddArc(arc, 90, 90);
-            path.CloseFigure();
-
-            return path;
-        }
-
         private static void SaveAsJpeg(Bitmap bitmap, Stream output, long jpegQuality)
         {
-            ImageCodecInfo jpgCodec = GetEncoder(ImageFormat.Jpeg);
+            ImageCodecInfo jpgCodec = ImageCodecInfo.GetImageDecoders().FirstOrDefault(c => c.FormatID == ImageFormat.Jpeg.Guid);
             if (jpgCodec == null)
             {
                 bitmap.Save(output, ImageFormat.Jpeg);
@@ -1225,79 +658,6 @@ WHERE SKU = @SKU
             {
                 bmp.SetResolution(96, 96);
             }
-        }
-
-        private static ImageCodecInfo GetEncoder(ImageFormat format)
-        {
-            return ImageCodecInfo.GetImageDecoders().FirstOrDefault(c => c.FormatID == format.Guid);
-        }
-
-        private static string GetSafeContentType(string ext, string postedContentType)
-        {
-            if (!string.IsNullOrWhiteSpace(postedContentType) &&
-                postedContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
-                return postedContentType;
-
-            switch (ext)
-            {
-                case ".jpg":
-                case ".jpeg":
-                    return "image/jpeg";
-                case ".png":
-                    return "image/png";
-                case ".webp":
-                    return "image/webp";
-                default:
-                    return "application/octet-stream";
-            }
-        }
-
-        private static string FormatSize(long bytes)
-        {
-            if (bytes < 1024) return bytes + " B";
-            if (bytes < 1024 * 1024) return (bytes / 1024d).ToString("0.0", CultureInfo.InvariantCulture) + " KB";
-            return (bytes / 1024d / 1024d).ToString("0.00", CultureInfo.InvariantCulture) + " MB";
-        }
-
-        private sealed class ImageProcessOptions
-        {
-            public int CanvasSize { get; set; }
-            public double FillRatio { get; set; }
-            public bool AutoWhiteBackground { get; set; }
-            public bool CenterSubject { get; set; }
-            public bool SoftShadow { get; set; }
-            public int EdgeThreshold { get; set; }
-            public int ColorTolerance { get; set; }
-            public int FeatherRadius { get; set; }
-            public int ShadowOpacity { get; set; }
-            public int ShadowBlur { get; set; }
-            public int ShadowOffsetY { get; set; }
-            public Color BackgroundColor { get; set; }
-        }
-
-        private sealed class ChannelPackSpec
-        {
-            public string Marketplace { get; set; }
-            public List<ChannelImageSpec> Images { get; set; }
-        }
-
-        private sealed class ChannelImageSpec
-        {
-            public string OutputRole { get; set; }
-            public string[] SourceRoleFallbacks { get; set; }
-            public ImageProcessOptions Options { get; set; }
-        }
-
-        private sealed class SourceImageItem
-        {
-            public int ProductImageID { get; set; }
-            public string SKU { get; set; }
-            public byte[] ImageData { get; set; }
-            public string FileName { get; set; }
-            public string Marketplace { get; set; }
-            public string ImageRole { get; set; }
-            public int SortOrder { get; set; }
-            public bool IsPrimary { get; set; }
         }
     }
 }

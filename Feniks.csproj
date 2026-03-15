@@ -167,6 +167,7 @@
     <Content Include="Administrator\ProductEdit.aspx" />
     <Content Include="Administrator\ProductImages.aspx" />
     <Content Include="Administrator\ProductList.aspx" />
+    <Content Include="Administrator\ProductMainPhoto.aspx" />
     <Content Include="Administrator\Products.aspx" />
     <Content Include="Administrator\NewOrder.aspx" />
     <Content Include="Administrator\Profile.aspx" />
@@ -420,6 +421,13 @@
     </Compile>
     <Compile Include="Administrator\ProductList.aspx.designer.cs">
       <DependentUpon>ProductList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\ProductMainPhoto.aspx.cs">
+      <DependentUpon>ProductMainPhoto.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\ProductMainPhoto.aspx.designer.cs">
+      <DependentUpon>ProductMainPhoto.aspx</DependentUpon>
     </Compile>
     <Compile Include="Administrator\StockHistory.aspx.cs">
       <DependentUpon>StockHistory.aspx</DependentUpon>
