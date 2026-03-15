@@ -43,10 +43,12 @@ namespace Feniks.Administrator
                 {
                     while (dr.Read())
                     {
-                        ddlProductType.Items.Add(new ListItem(
-                            Convert.ToString(dr["ProductType"]),
-                            Convert.ToString(dr["ProductTypeID"])
-                        ));
+                        ddlProductType.Items.Add(
+                            new ListItem(
+                                Convert.ToString(dr["ProductType"]),
+                                Convert.ToString(dr["ProductTypeID"])
+                            )
+                        );
                     }
                 }
             }
@@ -60,25 +62,105 @@ namespace Feniks.Administrator
             {
                 cmd.CommandType = CommandType.StoredProcedure;
 
-                cmd.Parameters.AddWithValue("@SKUContains",
-                    string.IsNullOrWhiteSpace(txtSKU.Text) ? (object)DBNull.Value : txtSKU.Text.Trim());
+                cmd.Parameters.AddWithValue(
+                    "@SKUContains",
+                    string.IsNullOrWhiteSpace(txtSKU.Text)
+                        ? (object)DBNull.Value
+                        : txtSKU.Text.Trim()
+                );
 
-                cmd.Parameters.AddWithValue("@ProductTypeID",
-                    string.IsNullOrWhiteSpace(ddlProductType.SelectedValue) ? (object)DBNull.Value : ddlProductType.SelectedValue);
+                cmd.Parameters.AddWithValue(
+                    "@ProductTypeID",
+                    string.IsNullOrWhiteSpace(ddlProductType.SelectedValue)
+                        ? (object)DBNull.Value
+                        : ddlProductType.SelectedValue
+                );
 
-                cmd.Parameters.AddWithValue("@StockMode",
-                    string.IsNullOrWhiteSpace(ddlStockMode.SelectedValue) ? (object)DBNull.Value : ddlStockMode.SelectedValue);
+                cmd.Parameters.AddWithValue(
+                    "@StockMode",
+                    string.IsNullOrWhiteSpace(ddlStockMode.SelectedValue)
+                        ? (object)DBNull.Value
+                        : ddlStockMode.SelectedValue
+                );
 
                 DataTable dt = new DataTable();
                 da.Fill(dt);
 
                 gvProducts.DataSource = dt;
                 gvProducts.DataBind();
+
+                litResultCount.Text = dt.Rows.Count.ToString("N0");
+                BindKpis(dt);
             }
+        }
+
+        private void BindKpis(DataTable dt)
+        {
+            litKpiProducts.Text = dt.Rows.Count.ToString("N0");
+            litKpiStockQty.Text = SumColumn(dt, "StockQty").ToString("N0");
+            litKpiSalesQty.Text = SumColumn(dt, "SalesQty").ToString("N0");
+            litKpiAvgPrice.Text = AvgColumn(dt, "UnitPrice").ToString("N2");
+        }
+
+        private decimal SumColumn(DataTable dt, string columnName)
+        {
+            decimal total = 0m;
+
+            if (dt == null || !dt.Columns.Contains(columnName))
+                return total;
+
+            foreach (DataRow row in dt.Rows)
+            {
+                total += SafeToDecimal(row[columnName]);
+            }
+
+            return total;
+        }
+
+        private decimal AvgColumn(DataTable dt, string columnName)
+        {
+            decimal total = 0m;
+            int count = 0;
+
+            if (dt == null || !dt.Columns.Contains(columnName))
+                return 0m;
+
+            foreach (DataRow row in dt.Rows)
+            {
+                total += SafeToDecimal(row[columnName]);
+                count++;
+            }
+
+            if (count == 0)
+                return 0m;
+
+            return total / count;
+        }
+
+        private decimal SafeToDecimal(object value)
+        {
+            if (value == null || value == DBNull.Value)
+                return 0m;
+
+            decimal result;
+            return decimal.TryParse(Convert.ToString(value), out result) ? result : 0m;
         }
 
         protected void btnSearch_Click(object sender, EventArgs e)
         {
+            BindGrid();
+        }
+
+        protected void btnClear_Click(object sender, EventArgs e)
+        {
+            txtSKU.Text = string.Empty;
+
+            if (ddlProductType.Items.Count > 0)
+                ddlProductType.SelectedIndex = 0;
+
+            if (ddlStockMode.Items.Count > 0)
+                ddlStockMode.SelectedIndex = 0;
+
             BindGrid();
         }
 
@@ -96,23 +178,26 @@ namespace Feniks.Administrator
             if (e.Row.RowType != DataControlRowType.DataRow)
                 return;
 
-            Label lblMode = (Label)e.Row.FindControl("lblMode");
-            if (lblMode == null)
-                return;
-
-            string mode = lblMode.Text.Trim().ToUpperInvariant();
-
-            switch (mode)
+            Label lblMode = e.Row.FindControl("lblMode") as Label;
+            if (lblMode != null)
             {
-                case "S":
+                string mode = (lblMode.Text ?? string.Empty).Trim().ToUpperInvariant();
+
+                if (mode == "S")
+                {
                     lblMode.CssClass = "mode-badge mode-s";
-                    break;
-                case "A":
+                    lblMode.Text = "S";
+                }
+                else if (mode == "A")
+                {
                     lblMode.CssClass = "mode-badge mode-a";
-                    break;
-                default:
+                    lblMode.Text = "A";
+                }
+                else
+                {
                     lblMode.CssClass = "mode-badge mode-n";
-                    break;
+                    lblMode.Text = "N";
+                }
             }
         }
 

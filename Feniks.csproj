@@ -210,6 +210,7 @@
     <Content Include="ProductImageHandler.ashx" />
     <Content Include="Administrator\ProductImageDownload.ashx" />
     <Content Include="ProductAmazonMainImageHandler.ashx" />
+    <Content Include="Administrator\ProductMainImageHandler.ashx" />
     <None Include="Properties\PublishProfiles\FolderProfile.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - Web Deploy.pubxml" />
@@ -430,6 +431,9 @@
     </Compile>
     <Compile Include="Administrator\ProductList.aspx.designer.cs">
       <DependentUpon>ProductList.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\ProductMainImageHandler.ashx.cs">
+      <DependentUpon>ProductMainImageHandler.ashx</DependentUpon>
     </Compile>
     <Compile Include="Administrator\ProductMainPhoto.aspx.cs">
       <DependentUpon>ProductMainPhoto.aspx</DependentUpon>
