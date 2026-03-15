@@ -44,7 +44,6 @@ namespace Feniks
             try
             {
                 int userId = CallValidateUser(usernameOrEmail, password);
-
                 HideLoadingClient();
 
                 Logger.Log("ValidateUser got userId, continuing...");
@@ -95,11 +94,13 @@ namespace Feniks
             Logger.Log("CallValidateUser START | u=" + usernameOrEmail);
 
             string raw = ConfigurationManager.ConnectionStrings["constr"].ConnectionString;
+            var builder = new SqlConnectionStringBuilder(raw)
+            {
+                ConnectTimeout = 5,
+                ConnectRetryCount = 0
+            };
 
-            var b = new SqlConnectionStringBuilder(raw);
-            b.ConnectTimeout = 5;
-            b.ConnectRetryCount = 0;
-            string constr = b.ToString();
+            string constr = builder.ToString();
 
             Logger.Log("Before SqlConnection.Open()");
 
@@ -118,7 +119,9 @@ namespace Feniks
                 object result = cmd.ExecuteScalar();
                 Logger.Log("After ExecuteScalar() | result=" + (result == null ? "NULL" : result.ToString()));
 
-                if (result == null) return -1;
+                if (result == null)
+                    return -1;
+
                 return Convert.ToInt32(result);
             }
         }
@@ -143,19 +146,20 @@ namespace Feniks
             try
             {
                 string constr = ConfigurationManager.ConnectionStrings["constr"].ConnectionString;
-
                 int userId = 0;
+
                 using (SqlConnection con = new SqlConnection(constr))
                 using (SqlCommand cmd = new SqlCommand("SELECT TOP 1 UserId FROM dbo.Users WHERE Email=@Email", con))
                 {
                     cmd.CommandTimeout = 15;
                     cmd.Parameters.Add("@Email", SqlDbType.NVarChar, 255).Value = email;
+
                     con.Open();
-                    object v = cmd.ExecuteScalar();
+                    object value = cmd.ExecuteScalar();
                     con.Close();
 
-                    if (v != null)
-                        userId = Convert.ToInt32(v);
+                    if (value != null)
+                        userId = Convert.ToInt32(value);
                 }
 
                 if (userId <= 0)
@@ -171,8 +175,24 @@ namespace Feniks
 
                 using (SqlConnection con = new SqlConnection(constr))
                 using (SqlCommand cmd = new SqlCommand(@"
-INSERT INTO dbo.T_PasswordReset(UserId, Email, Token, ExpiresAtUtc, IsUsed, CreatedAtUtc)
-VALUES(@UserId, @Email, @Token, @Exp, 0, GETUTCDATE())", con))
+                    INSERT INTO dbo.T_PasswordReset
+                    (
+                        UserId,
+                        Email,
+                        Token,
+                        ExpiresAtUtc,
+                        IsUsed,
+                        CreatedAtUtc
+                    )
+                    VALUES
+                    (
+                        @UserId,
+                        @Email,
+                        @Token,
+                        @Exp,
+                        0,
+                        GETUTCDATE()
+                    )", con))
                 {
                     cmd.CommandTimeout = 15;
                     cmd.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
@@ -187,15 +207,20 @@ VALUES(@UserId, @Email, @Token, @Exp, 0, GETUTCDATE())", con))
 
                 string resetUrl = GetBaseUrl() + "/ResetPassword.aspx?token=" + HttpUtility.UrlEncode(token);
 
-                SendMail(
-                    to: email,
-                    subject: "lamaX - Password Reset",
-                    bodyHtml:
-                        "<p>Hello,</p>" +
-                        "<p>You requested a password reset for lamaX.</p>" +
-                        "<p><a href='" + resetUrl + "'>Click here to reset your password</a></p>" +
-                        "<p>This link expires in 2 hours.</p>"
-                );
+                string bodyHtml = @"
+                    <div style='font-family:Segoe UI,Arial,sans-serif; color:#1f2937; line-height:1.7;'>
+                        <p>Hello,</p>
+                        <p>You requested a password reset for <strong>lamaX</strong>.</p>
+                        <p>
+                            <a href='" + resetUrl + @"'
+                               style='display:inline-block; padding:10px 18px; background:#3953e6; color:#ffffff; text-decoration:none; border-radius:8px; font-weight:700;'>
+                               Click here to reset your password
+                            </a>
+                        </p>
+                        <p>This link expires in 2 hours.</p>
+                    </div>";
+
+                SendMail(email, "lamaX - Password Reset", bodyHtml);
 
                 pnlForgotOk.Visible = true;
             }
@@ -216,19 +241,23 @@ VALUES(@UserId, @Email, @Token, @Exp, 0, GETUTCDATE())", con))
             var req = HttpContext.Current.Request;
             var uri = req.Url;
             string appPath = req.ApplicationPath;
-            if (appPath == "/") appPath = "";
+
+            if (appPath == "/")
+                appPath = "";
+
             return uri.Scheme + "://" + uri.Authority + appPath;
         }
 
         private void SendMail(string to, string subject, string bodyHtml)
         {
-            var from = ConfigurationManager.AppSettings["MailFrom"];
+            string from = ConfigurationManager.AppSettings["MailFrom"];
             if (string.IsNullOrWhiteSpace(from))
                 from = "no-reply@hgerman.pl";
 
             using (var msg = new MailMessage(from, to, subject, bodyHtml))
             {
                 msg.IsBodyHtml = true;
+
                 using (var client = new SmtpClient())
                 {
                     client.Send(msg);
