@@ -448,7 +448,7 @@
                         Sign in to continue managing your business operations securely and efficiently.
                     </div>
                     <a href="javascript:void(0);" class="left-button" onclick="document.getElementById('<%= txtUsername.ClientID %>').focus();">
-                        LOG IN
+                        Reguest Account
                     </a>
                 </div>
 
@@ -472,7 +472,7 @@
                     </div>
 
                     <div class="field-group">
-                        <label class="field-label" for="<%= txtUsername.ClientID %>">Email or Username</label>
+                        <label class="field-label" for="<%= txtUsername.ClientID %>">Username</label>
                         <asp:TextBox ID="txtUsername" runat="server" CssClass="input-box" placeholder="Enter your email or username" />
                     </div>
 
@@ -503,10 +503,6 @@
                         OnClick="ValidateUser"
                         OnClientClick="return submitLogin();" />
 
-                    <div class="signup-row">
-                        Need access?
-                        <a href="SignupRequest.aspx">Request an account</a>
-                    </div>
 
                     <asp:Label ID="lblLoginName" runat="server" Visible="false" />
                     <asp:Label ID="lblLocation" runat="server" Visible="false" />
