@@ -164,6 +164,7 @@
     <Content Include="Administrator\OrderUpdate.aspx" />
     <Content Include="Administrator\PhotoAddforProduct.aspx" />
     <Content Include="Administrator\ProductAI.aspx" />
+    <Content Include="Administrator\ProductAmazonMainImage.aspx" />
     <Content Include="Administrator\ProductEdit.aspx" />
     <Content Include="Administrator\ProductImages.aspx" />
     <Content Include="Administrator\ProductList.aspx" />
@@ -208,6 +209,7 @@
     <Content Include="Images\loginback.png" />
     <Content Include="ProductImageHandler.ashx" />
     <Content Include="Administrator\ProductImageDownload.ashx" />
+    <Content Include="ProductAmazonMainImageHandler.ashx" />
     <None Include="Properties\PublishProfiles\FolderProfile.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - Web Deploy.pubxml" />
@@ -405,6 +407,13 @@
     <Compile Include="Administrator\ProductAI.aspx.designer.cs">
       <DependentUpon>ProductAI.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Administrator\ProductAmazonMainImage.aspx.cs">
+      <DependentUpon>ProductAmazonMainImage.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\ProductAmazonMainImage.aspx.designer.cs">
+      <DependentUpon>ProductAmazonMainImage.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Administrator\ProductEdit.aspx.cs">
       <DependentUpon>ProductEdit.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -435,6 +444,9 @@
     </Compile>
     <Compile Include="Administrator\StockHistory.aspx.designer.cs">
       <DependentUpon>StockHistory.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="ProductAmazonMainImageHandler.ashx.cs">
+      <DependentUpon>ProductAmazonMainImageHandler.ashx</DependentUpon>
     </Compile>
     <Compile Include="ProductImageHandler.ashx.cs">
       <DependentUpon>ProductImageHandler.ashx</DependentUpon>

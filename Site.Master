@@ -426,8 +426,8 @@
                         <span class="rail-label">Product List</span>
                     </a>
 
-                    <a href="/Administrator/ProductImages.aspx"
-                       class='rail-link <%= IsActive("/administrator/productimages.aspx") ? "active" : "" %>'
+                    <a href="/Administrator/ProductAmazonMainImage.aspx"
+                       class='rail-link <%= IsActive("/administrator/ProductAmazonMainImage.aspx") ? "active" : "" %>'
                        title="Images">
                         <span class="glyphicon glyphicon-picture"></span>
                         <span class="rail-label">Images</span>
