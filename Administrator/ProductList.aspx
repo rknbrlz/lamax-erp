@@ -605,7 +605,7 @@
 
                                 <a class="btn-icon"
                                    title="Images"
-                                   href='<%# "ProductImages.aspx?sku=" + Server.UrlEncode(Convert.ToString(Eval("SKU"))) %>'>
+                                   href='<%# "ProductAmazonMainImage.aspx?sku=" + Server.UrlEncode(Convert.ToString(Eval("SKU"))) %>'>
                                     <svg viewBox="0 0 24 24" aria-hidden="true">
                                         <path d="M21 19V5c0-1.1-.9-2-2-2H5C3.9 3 3 3.9 3 5v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zm-2 0H5V5h14v14zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H6l2.5-4.5z"></path>
                                     </svg>
