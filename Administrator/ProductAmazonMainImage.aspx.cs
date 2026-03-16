@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Security.Cryptography;
 using System.Text;
 using System.Web.Script.Serialization;
 using System.Web.UI;
@@ -39,6 +40,33 @@ namespace Feniks.Administrator
             }
         }
 
+        private string OpenAiImageModel
+        {
+            get
+            {
+                string model = ConfigurationManager.AppSettings["OpenAI:ImageEditModel"];
+                return string.IsNullOrWhiteSpace(model) ? "gpt-image-1-mini" : model.Trim();
+            }
+        }
+
+        private string OpenAiImageQuality
+        {
+            get
+            {
+                string quality = ConfigurationManager.AppSettings["OpenAI:ImageEditQuality"];
+                return string.IsNullOrWhiteSpace(quality) ? "medium" : quality.Trim().ToLowerInvariant();
+            }
+        }
+
+        private string OpenAiImageSize
+        {
+            get
+            {
+                string size = ConfigurationManager.AppSettings["OpenAI:ImageEditSize"];
+                return string.IsNullOrWhiteSpace(size) ? "1024x1024" : size.Trim().ToLowerInvariant();
+            }
+        }
+
         protected void Page_Load(object sender, EventArgs e)
         {
             if (!IsPostBack)
@@ -54,7 +82,6 @@ namespace Feniks.Administrator
                 ClearMessage();
 
                 string sku = (txtSKU.Text ?? string.Empty).Trim().ToUpperInvariant();
-
                 if (string.IsNullOrWhiteSpace(sku))
                 {
                     ShowError("SKU is required.");
@@ -89,7 +116,6 @@ namespace Feniks.Administrator
 
                 string extension = Path.GetExtension(fuImage.FileName ?? string.Empty).ToLowerInvariant();
                 string[] allowed = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".webp" };
-
                 if (!allowed.Contains(extension))
                 {
                     ShowError("Unsupported file type. Please upload JPG, JPEG, PNG, BMP or WEBP.");
@@ -102,17 +128,30 @@ namespace Feniks.Administrator
                     uploadedBytes = br.ReadBytes(fuImage.PostedFile.ContentLength);
                 }
 
-                // 1) OpenAI ile arka planı temizlet
-                byte[] openAiProcessedPng = EditImageWithOpenAi(
-                    uploadedBytes,
-                    GetMimeTypeFromExtension(extension),
-                    Path.GetFileName(fuImage.FileName)
-                );
+                if (uploadedBytes == null || uploadedBytes.Length == 0)
+                {
+                    ShowError("Uploaded file is empty.");
+                    return;
+                }
 
-                // 2) Son Amazon canvas çıktısını lokal olarak üret
+                // Aynı SKU + aynı dosya kısa sürede tekrar gönderilirse maliyet oluşmasın.
+                string requestFingerprint = CreateRequestFingerprint(sku, uploadedBytes, canvasSize, fillRatio);
+                if (IsDuplicateRecentRequest(requestFingerprint))
+                {
+                    ShowError("The same image for this SKU was just processed. Please wait or use a different file.");
+                    return;
+                }
+
+                // API'ye daha hafif veri göndermek için önce görseli normalize ediyoruz.
+                byte[] preparedForApi = PrepareUploadForApi(uploadedBytes);
+
+                // OpenAI image edit ile arka planı ekonomik modda temizlet.
+                byte[] openAiProcessedPng = EditImageWithOpenAi(preparedForApi, "image/png", "upload.png");
+
+                // Son Amazon canvas çıktısını lokal olarak üret.
                 ProcessedImageResult result = BuildAmazonMainImageFromProcessed(openAiProcessedPng, canvasSize, fillRatio);
 
-                // 3) DB save
+                // DB save
                 SaveImageToDatabase(
                     sku: sku,
                     originalFileName: Path.GetFileName(fuImage.FileName),
@@ -125,6 +164,8 @@ namespace Feniks.Administrator
                     userName: GetCurrentUserName()
                 );
 
+                MarkRecentRequest(requestFingerprint);
+
                 BindPreviewFromBytes(result.Bytes);
                 BindMeta(
                     sku,
@@ -132,7 +173,7 @@ namespace Feniks.Administrator
                     result.Width + " x " + result.Height + " | " + FormatBytes(result.Bytes.Length)
                 );
 
-                ShowSuccess("Image processed with OpenAI and saved successfully.");
+                ShowSuccess("Image processed and saved successfully.");
             }
             catch (Exception ex)
             {
@@ -147,7 +188,6 @@ namespace Feniks.Administrator
                 ClearMessage();
 
                 string sku = (txtSKU.Text ?? string.Empty).Trim().ToUpperInvariant();
-
                 if (string.IsNullOrWhiteSpace(sku))
                 {
                     ShowError("Please enter SKU first.");
@@ -161,7 +201,6 @@ namespace Feniks.Administrator
                     cmd.Parameters.AddWithValue("@SKU", sku);
 
                     con.Open();
-
                     using (SqlDataReader dr = cmd.ExecuteReader())
                     {
                         if (dr.Read())
@@ -209,6 +248,48 @@ namespace Feniks.Administrator
             }
         }
 
+        private byte[] PrepareUploadForApi(byte[] sourceBytes)
+        {
+            // Amaç: API'ye gereksiz büyük dosya göndermemek.
+            // Kısa kenarı / detayları çok bozmayacak şekilde normalize ediyoruz.
+            using (MemoryStream ms = new MemoryStream(sourceBytes))
+            using (Image raw = Image.FromStream(ms))
+            {
+                int maxSide = 1400;
+
+                int newWidth = raw.Width;
+                int newHeight = raw.Height;
+
+                if (raw.Width > maxSide || raw.Height > maxSide)
+                {
+                    double ratio = Math.Min((double)maxSide / raw.Width, (double)maxSide / raw.Height);
+                    newWidth = Math.Max(1, (int)Math.Round(raw.Width * ratio));
+                    newHeight = Math.Max(1, (int)Math.Round(raw.Height * ratio));
+                }
+
+                using (Bitmap resized = new Bitmap(newWidth, newHeight, PixelFormat.Format32bppArgb))
+                {
+                    resized.SetResolution(72, 72);
+
+                    using (Graphics g = Graphics.FromImage(resized))
+                    {
+                        g.Clear(Color.White);
+                        g.CompositingQuality = CompositingQuality.HighQuality;
+                        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                        g.SmoothingMode = SmoothingMode.HighQuality;
+                        g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                        g.DrawImage(raw, new Rectangle(0, 0, newWidth, newHeight));
+                    }
+
+                    using (MemoryStream outMs = new MemoryStream())
+                    {
+                        resized.Save(outMs, ImageFormat.Png);
+                        return outMs.ToArray();
+                    }
+                }
+            }
+        }
+
         private byte[] EditImageWithOpenAi(byte[] sourceBytes, string mimeType, string fileName)
         {
             using (HttpClient client = new HttpClient())
@@ -218,26 +299,21 @@ namespace Feniks.Administrator
 
                 using (MultipartFormDataContent form = new MultipartFormDataContent())
                 {
-                    // Model
-                    form.Add(new StringContent("gpt-image-1"), "model");
+                    form.Add(new StringContent(OpenAiImageModel), "model");
 
-                    // Prompt
                     string prompt =
-                        "Edit this product photo for an Amazon main image workflow. " +
+                        "Clean this product photo for an Amazon main image. " +
                         "Keep the product exactly the same. " +
-                        "Remove distractions, clean the background, and make the background pure white. " +
-                        "Do not add extra objects, props, text, watermark, hands, shadows, decorations, or scene elements. " +
-                        "Preserve the jewelry details and realistic shape. " +
-                        "Return a clean isolated product image suitable for a marketplace main photo.";
+                        "Remove distracting background elements and make the background pure white. " +
+                        "Do not add props, hands, text, watermark, decorations, extra objects, or fake reflections. " +
+                        "Preserve realistic jewelry details, edges, proportions, and color. " +
+                        "Return one clean isolated product image.";
 
                     form.Add(new StringContent(prompt, Encoding.UTF8), "prompt");
-
-                    // Output settings
-                    form.Add(new StringContent("1024x1024"), "size");
-                    form.Add(new StringContent("high"), "quality");
+                    form.Add(new StringContent(OpenAiImageSize), "size");
+                    form.Add(new StringContent(OpenAiImageQuality), "quality");
                     form.Add(new StringContent("png"), "output_format");
 
-                    // Image
                     ByteArrayContent imageContent = new ByteArrayContent(sourceBytes);
                     imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse(mimeType);
                     form.Add(imageContent, "image", fileName);
@@ -252,7 +328,6 @@ namespace Feniks.Administrator
 
                     JavaScriptSerializer serializer = new JavaScriptSerializer();
                     serializer.MaxJsonLength = int.MaxValue;
-
                     OpenAiImageEditResponse parsed = serializer.Deserialize<OpenAiImageEditResponse>(responseText);
 
                     if (parsed == null || parsed.data == null || parsed.data.Length == 0 || string.IsNullOrWhiteSpace(parsed.data[0].b64_json))
@@ -276,7 +351,8 @@ namespace Feniks.Administrator
                 using (Bitmap cropped = CropBitmap(source, cropRect))
                 {
                     int targetInnerSize = (int)Math.Round(canvasSize * (fillRatio / 100.0));
-                    if (targetInnerSize < 1) targetInnerSize = (int)Math.Round(canvasSize * 0.85);
+                    if (targetInnerSize < 1)
+                        targetInnerSize = (int)Math.Round(canvasSize * 0.85);
 
                     double scaleX = (double)targetInnerSize / cropped.Width;
                     double scaleY = (double)targetInnerSize / cropped.Height;
@@ -420,27 +496,45 @@ namespace Feniks.Administrator
             }
         }
 
-        private string GetMimeTypeFromExtension(string extension)
+        private string CreateRequestFingerprint(string sku, byte[] fileBytes, int canvasSize, int fillRatio)
         {
-            switch ((extension ?? string.Empty).ToLowerInvariant())
+            using (SHA256 sha = SHA256.Create())
             {
-                case ".jpg":
-                case ".jpeg":
-                    return "image/jpeg";
-                case ".png":
-                    return "image/png";
-                case ".bmp":
-                    return "image/bmp";
-                case ".webp":
-                    return "image/webp";
-                default:
-                    return "application/octet-stream";
+                byte[] seed = Encoding.UTF8.GetBytes(
+                    sku + "|" + canvasSize + "|" + fillRatio + "|" + Convert.ToBase64String(fileBytes)
+                );
+
+                byte[] hash = sha.ComputeHash(seed);
+                return BitConverter.ToString(hash).Replace("-", string.Empty);
             }
+        }
+
+        private bool IsDuplicateRecentRequest(string fingerprint)
+        {
+            if (Session == null) return false;
+
+            string lastFingerprint = Convert.ToString(Session["ProductAmazonMainImage_LastFingerprint"]);
+            DateTime? lastTime = Session["ProductAmazonMainImage_LastTime"] as DateTime?;
+
+            if (string.IsNullOrWhiteSpace(lastFingerprint) || !lastTime.HasValue)
+                return false;
+
+            return string.Equals(lastFingerprint, fingerprint, StringComparison.OrdinalIgnoreCase)
+                   && (DateTime.UtcNow - lastTime.Value).TotalMinutes <= 5;
+        }
+
+        private void MarkRecentRequest(string fingerprint)
+        {
+            if (Session == null) return;
+
+            Session["ProductAmazonMainImage_LastFingerprint"] = fingerprint;
+            Session["ProductAmazonMainImage_LastTime"] = DateTime.UtcNow;
         }
 
         private void SaveJpeg(Image image, Stream output, long quality)
         {
-            ImageCodecInfo jpgEncoder = ImageCodecInfo.GetImageDecoders()
+            ImageCodecInfo jpgEncoder = ImageCodecInfo
+                .GetImageDecoders()
                 .FirstOrDefault(c => c.FormatID == ImageFormat.Jpeg.Guid);
 
             if (jpgEncoder == null)
@@ -457,8 +551,9 @@ namespace Feniks.Administrator
         private void BindPreviewFromBytes(byte[] imageBytes)
         {
             imgPreview.ImageUrl = "data:image/jpeg;base64," + Convert.ToBase64String(imageBytes);
-            imgPreview.Visible = true;
-            lblPreviewEmpty.Visible = false;
+            imgPreview.Style["display"] = "block";
+            lblPreviewEmpty.Style["display"] = "none";
+            pnlMeta.Visible = true;
         }
 
         private void BindMeta(string sku, string originalFileName, string outputInfo)
@@ -473,8 +568,8 @@ namespace Feniks.Administrator
         private void ResetPreview()
         {
             imgPreview.ImageUrl = string.Empty;
-            imgPreview.Visible = false;
-            lblPreviewEmpty.Visible = true;
+            imgPreview.Style["display"] = "none";
+            lblPreviewEmpty.Style["display"] = "block";
             pnlMeta.Visible = false;
         }
 
@@ -510,19 +605,19 @@ namespace Feniks.Administrator
             return string.Format("{0:0.##} {1}", size, units[unit]);
         }
 
+        private void ClearMessage()
+        {
+            lblMessage.Text = string.Empty;
+        }
+
         private void ShowSuccess(string message)
         {
-            lblMessage.Text = "<div class='alert alert-success' style='border-radius:12px;'>" + Server.HtmlEncode(message) + "</div>";
+            lblMessage.Text = "<span class='msg-success'>" + Server.HtmlEncode(message) + "</span>";
         }
 
         private void ShowError(string message)
         {
-            lblMessage.Text = "<div class='alert alert-danger' style='border-radius:12px;'>" + Server.HtmlEncode(message) + "</div>";
-        }
-
-        private void ClearMessage()
-        {
-            lblMessage.Text = string.Empty;
+            lblMessage.Text = "<span class='msg-error'>" + Server.HtmlEncode(message) + "</span>";
         }
 
         private class ProcessedImageResult
@@ -534,10 +629,10 @@ namespace Feniks.Administrator
 
         private class OpenAiImageEditResponse
         {
-            public OpenAiImageData[] data { get; set; }
+            public OpenAiImageEditData[] data { get; set; }
         }
 
-        private class OpenAiImageData
+        private class OpenAiImageEditData
         {
             public string b64_json { get; set; }
         }
