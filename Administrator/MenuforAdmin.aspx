@@ -1,411 +1,718 @@
-﻿<%@ Page Title="Menu for Admin" Language="C#" MasterPageFile="~/Site.Master"
-    AutoEventWireup="true" CodeBehind="MenuforAdmin.aspx.cs" Inherits="Feniks.Admin.MenuforAdmin" %>
+﻿<%@ Page Title="Menu for Admin" Language="C#" MasterPageFile="~/Site.Master" AutoEventWireup="true" CodeBehind="MenuforAdmin.aspx.cs" Inherits="Feniks.Admin.MenuforAdmin" %>
 
 <asp:Content ID="Content1" ContentPlaceHolderID="MainContent" runat="server">
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Bootstrap 3 -->
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
-    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet" />
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<style>
+    body {
+        background: #f3f5f7;
+    }
 
-    <style>
-        body { background:#f5f6f8; }
+    .admin-page {
+        padding: 0 14px 14px 14px;
+        margin-top: 0 !important;
+    }
 
-        /* ✅ Sarı alandaki üst boşluğu azalt */
-        .page-wrap { padding-top: 0px; padding-bottom: 25px; }
-        .topbar { margin-bottom: 12px; margin-top: 10px; }
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: 0 0 10px 0;
+        padding-top: 0;
+    }
 
-        .rate-badge {
-            background:#fff; border:1px solid #e5e5e5; color:#666; font-weight:700;
-            padding:8px 10px; display:inline-block; margin-left:8px; border-radius:14px;
+    .page-title-wrap {
+        margin: 0;
+        padding: 0;
+    }
+
+    .page-title-wrap h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: #162033;
+        letter-spacing: -.2px;
+        line-height: 1.1;
+    }
+
+    .page-title-wrap p {
+        margin: 4px 0 0 0;
+        font-size: 12px;
+        color: #6b7280;
+    }
+
+    .top-rate-strip {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 0;
+        padding: 0;
+    }
+
+    .top-rate-item {
+        min-width: 104px;
+        background: #ffffff;
+        border: 1px solid #e4e7ec;
+        border-radius: 8px;
+        padding: 8px 10px;
+    }
+
+    .top-rate-label {
+        font-size: 10px;
+        font-weight: 700;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+        margin-bottom: 2px;
+    }
+
+    .top-rate-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: #162033;
+        line-height: 1.1;
+    }
+
+    .info-banner {
+        background: #fffbea;
+        border: 1px solid #efe2a6;
+        color: #7a6410;
+        padding: 9px 12px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .row-tight {
+        margin-bottom: 12px;
+    }
+
+    .panel-card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 14px;
+        height: 100%;
+    }
+
+    .panel-title {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 700;
+        color: #162033;
+        line-height: 1.15;
+    }
+
+    .panel-subtitle {
+        margin: 3px 0 10px 0;
+        font-size: 12px;
+        color: #6b7280;
+        line-height: 1.35;
+    }
+
+    .mini-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 10px;
+    }
+
+    .mini-kpi-box {
+        border: 1px solid #e5e7eb;
+        background: #fafbfc;
+        border-radius: 8px;
+        padding: 12px;
+    }
+
+    .mini-kpi-label {
+        font-size: 10px;
+        color: #6b7280;
+        text-transform: uppercase;
+        font-weight: 700;
+        letter-spacing: .35px;
+        margin-bottom: 6px;
+    }
+
+    .mini-kpi-value {
+        font-size: 36px;
+        line-height: 1;
+        font-weight: 700;
+        color: #162033;
+    }
+
+    .meta-text {
+        margin-top: 10px;
+        font-size: 11px;
+        color: #6b7280;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1.2fr .85fr .85fr auto;
+        gap: 10px;
+        align-items: end;
+    }
+
+    .form-grid-pay {
+        display: grid;
+        grid-template-columns: 1fr .8fr .8fr auto;
+        gap: 10px;
+        align-items: end;
+        margin-bottom: 10px;
+    }
+
+    .field label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #4b5563;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+    }
+
+    .input-modern {
+        width: 100%;
+        height: 38px;
+        border: 1px solid #d7dde6;
+        border-radius: 7px;
+        padding: 8px 10px;
+        background: #ffffff;
+        color: #162033;
+        font-size: 13px;
+        transition: .15s ease;
+        outline: none;
+    }
+
+    .input-modern:focus {
+        border-color: #94a3b8;
+        box-shadow: 0 0 0 3px rgba(148,163,184,.10);
+    }
+
+    .textarea-modern {
+        width: 100%;
+        min-height: 120px;
+        max-height: 120px;
+        border: 1px solid #d7dde6;
+        border-radius: 7px;
+        padding: 10px;
+        background: #ffffff;
+        color: #162033;
+        font-size: 13px;
+        resize: none;
+        outline: none;
+        transition: .15s ease;
+    }
+
+    .textarea-modern:focus {
+        border-color: #94a3b8;
+        box-shadow: 0 0 0 3px rgba(148,163,184,.10);
+    }
+
+    .btn-main {
+        height: 38px;
+        border: none;
+        border-radius: 7px;
+        padding: 0 14px;
+        background: #162033;
+        color: #ffffff;
+        font-size: 13px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .btn-main:hover,
+    .btn-main:focus {
+        background: #0f172a;
+        color: #ffffff;
+    }
+
+    .btn-light-nav {
+        height: 36px;
+        border: 1px solid #d8dee7;
+        border-radius: 7px;
+        padding: 0 12px;
+        background: #ffffff;
+        color: #162033;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .btn-light-nav:hover,
+    .btn-light-nav:focus {
+        background: #f8fafc;
+        color: #162033;
+    }
+
+    .result-box {
+        margin-top: 10px;
+        border: 1px solid #e5e7eb;
+        background: #fafbfc;
+        border-radius: 8px;
+        padding: 12px;
+        min-height: 70px;
+    }
+
+    .result-big {
+        font-size: 22px;
+        font-weight: 700;
+        color: #162033;
+        line-height: 1.15;
+    }
+
+    .result-meta {
+        margin-top: 4px;
+        font-size: 11px;
+        color: #6b7280;
+    }
+
+    .fx-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0,1fr));
+        gap: 10px;
+    }
+
+    .fx-box {
+        border: 1px solid #e5e7eb;
+        background: #fafbfc;
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+    }
+
+    .fx-code {
+        font-size: 10px;
+        color: #6b7280;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+        margin-bottom: 6px;
+    }
+
+    .fx-value {
+        font-size: 26px;
+        line-height: 1;
+        font-weight: 700;
+        color: #162033;
+    }
+
+    .toolbar-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+    }
+
+    .toolbar-meta {
+        font-size: 11px;
+        color: #6b7280;
+    }
+
+    .msg-label {
+        display: inline-block;
+        margin-top: 8px;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .table-wrap {
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .table-clean {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .table-clean th {
+        background: #f8fafc;
+        color: #4b5563;
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .3px;
+        padding: 9px 10px;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .table-clean td {
+        padding: 9px 10px;
+        border-bottom: 1px solid #eef2f7;
+        font-size: 12px;
+        color: #162033;
+        line-height: 1.3;
+    }
+
+    .table-clean tr:last-child td {
+        border-bottom: none;
+    }
+
+    .table-clean tr:nth-child(even) td {
+        background: #fcfcfd;
+    }
+
+    .nav-wrap {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .hidden-block,
+    .hero-box {
+        display: none;
+    }
+
+    .compact-panel {
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    @media (max-width: 1199px) {
+        .fx-grid {
+            grid-template-columns: repeat(2, minmax(0,1fr));
         }
-        .rate-badge .v { color:#999; font-weight:700; }
+    }
 
-        .hero {
-            background:#fff; border:1px solid #e6e6e6; border-radius:12px;
-            padding:18px 18px; margin-top: 10px; margin-bottom: 15px;
-            box-shadow: 0 1px 2px rgba(0,0,0,.03);
-        }
-        .hero h2 { margin:0; font-size:22px; color:#666; font-weight:700; }
-        .hero small { color:#999; }
-
-        .menu-card {
-            background:#fff; border:1px solid #e6e6e6; border-radius:12px;
-            padding:18px; margin-bottom: 15px;
-            box-shadow: 0 1px 2px rgba(0,0,0,.03);
-            transition: transform .12s ease, box-shadow .12s ease;
-            min-height: 170px;
-        }
-        .menu-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(0,0,0,.06);
-        }
-        .menu-title { font-weight:700; color:#333; margin-top: 0; }
-        .menu-desc { color:#888; font-size: 12px; margin-bottom: 12px; }
-        .menu-ico { font-size:38px; }
-        .menu-btn { margin-top: 12px; }
-
-        .alert-soft {
-            border-radius:12px; border:1px solid #f0e1a6;
-            background: #fff8d9;
-        }
-        .alert-soft .glyphicon { margin-right: 6px; }
-
-        /* FX small grid */
-        .fx-grid .cell { margin-bottom: 10px; }
-        .fx-grid small { color:#999; }
-        .fx-grid strong { font-size:16px; color:#333; }
-        .fx-meta { font-size:12px; color:#999; margin-top: 6px; }
-
-        /* Counter card */
-        .kpi-row { margin-top: 6px; }
-        .kpi-item { padding-right: 8px; }
-        .kpi-label { color:#999; font-size:12px; text-transform:uppercase; letter-spacing:.4px; }
-        .kpi-value { font-size:40px; font-weight:800; color:#333; line-height:1.1; }
-        .kpi-sub { color:#999; font-size:12px; margin-top: 8px; }
-        @media (max-width: 767px){
-            .kpi-value { font-size:36px; }
+    @media (max-width: 991px) {
+        .form-grid,
+        .form-grid-pay {
+            grid-template-columns: 1fr 1fr;
         }
 
-        /* GridView tweaks */
-        .table.table-condensed td, .table.table-condensed th { font-size: 12px; }
-    </style>
+        .form-grid > div:last-child,
+        .form-grid-pay > div:last-child {
+            grid-column: 1 / -1;
+        }
+    }
 
-    <div class="container-fluid page-wrap">
+    @media (max-width: 767px) {
+        .admin-page {
+            padding: 0 10px 10px 10px;
+        }
 
-        <!-- TOP BAR -->
-        <div class="row topbar">
-            <div class="col-xs-12 text-right">
-                <span class="rate-badge">USD/PLN: <span class="v"><asp:Label ID="lblUSD" runat="server" /></span></span>
-                <span class="rate-badge">EUR/PLN: <span class="v"><asp:Label ID="lblEUR" runat="server" /></span></span>
-                <span class="rate-badge">CAD/PLN: <span class="v"><asp:Label ID="lblCAD" runat="server" /></span></span>
-                <span class="rate-badge">PLN/TRY: <span class="v"><asp:Label ID="lblPLN" runat="server" /></span></span>
+        .page-title-wrap h1 {
+            font-size: 21px;
+        }
+
+        .mini-kpi-grid,
+        .form-grid,
+        .form-grid-pay,
+        .fx-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .mini-kpi-value {
+            font-size: 30px;
+        }
+
+        .fx-value {
+            font-size: 24px;
+        }
+
+        .top-rate-item {
+            min-width: 95px;
+        }
+
+        .textarea-modern {
+            min-height: 100px;
+            max-height: 100px;
+        }
+    }
+</style>
+
+<div class="admin-page">
+
+    <div class="page-header">
+        <div class="page-title-wrap">
+            <h1>Admin Overview</h1>
+            <p>Compact control panel for daily operations</p>
+        </div>
+
+        <div class="top-rate-strip">
+            <div class="top-rate-item">
+                <div class="top-rate-label">USD/PLN</div>
+                <div class="top-rate-value"><asp:Label ID="lblUSD" runat="server" Text="0.0000"></asp:Label></div>
+            </div>
+            <div class="top-rate-item">
+                <div class="top-rate-label">EUR/PLN</div>
+                <div class="top-rate-value"><asp:Label ID="lblEUR" runat="server" Text="0.0000"></asp:Label></div>
+            </div>
+            <div class="top-rate-item">
+                <div class="top-rate-label">CAD/PLN</div>
+                <div class="top-rate-value"><asp:Label ID="lblCAD" runat="server" Text="0.0000"></asp:Label></div>
+            </div>
+            <div class="top-rate-item">
+                <div class="top-rate-label">PLN/TRY</div>
+                <div class="top-rate-value"><asp:Label ID="lblPLN" runat="server" Text="0.0000"></asp:Label></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="divInfo" runat="server" class="info-banner">
+        Pending orders in action:
+        <asp:Label ID="lblOpenQty" runat="server" Text="0"></asp:Label>
+    </div>
+
+    <asp:Panel ID="pnlHero" runat="server" CssClass="hero-box">
+        <div>hidden</div>
+    </asp:Panel>
+
+    <div class="row row-tight">
+        <div class="col-md-3">
+            <div class="panel-card compact-panel">
+                <h2 class="panel-title">Orders</h2>
+                <div class="panel-subtitle">All-time summary</div>
+
+                <div class="mini-kpi-grid">
+                    <div class="mini-kpi-box">
+                        <div class="mini-kpi-label">Total Orders</div>
+                        <div class="mini-kpi-value">
+                            <asp:Label ID="lblTotalOrders" runat="server" Text="0"></asp:Label>
+                        </div>
+                    </div>
+
+                    <div class="mini-kpi-box">
+                        <div class="mini-kpi-label">Total Qty</div>
+                        <div class="mini-kpi-value">
+                            <asp:Label ID="lblTotalQty" runat="server" Text="0"></asp:Label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="meta-text">
+                    Updated:
+                    <asp:Label ID="lblOrdersCounterUpdated" runat="server" Text="-"></asp:Label>
+                </div>
+
+                <asp:HiddenField ID="hfTotalOrders" runat="server" />
+                <asp:HiddenField ID="hfTotalQty" runat="server" />
             </div>
         </div>
 
-        <!-- ✅ ALERT (KALDIRILDI) -->
-        <div id="divInfo" runat="server" visible="false" class="row" style="display:none;">
-            <div class="col-xs-12">
-                <div class="alert alert-soft">
-                    <strong>
-                        <i class="glyphicon glyphicon-alert" style="color:#f0ad4e;"></i>
-                        Pending orders in action:
-                    </strong>
-                    <asp:Label ID="lblOpenQty" runat="server" Font-Bold="True"></asp:Label>
-                </div>
-            </div>
-        </div>
+        <div class="col-md-5">
+            <div class="panel-card compact-panel">
+                <h2 class="panel-title">Currency Converter</h2>
+                <div class="panel-subtitle">Quick amount conversion</div>
 
-        <!-- ✅ HERO (KALDIRILDI) -->
-        <asp:Panel ID="pnlHero" runat="server" Visible="false">
-            <div class="row">
-                <div class="col-xs-12">
-                    <div class="hero">
-                        <h2>Welcome Hgerman! <small>Admin Panel</small></h2>
-                    </div>
-                </div>
-            </div>
-        </asp:Panel>
-
-        <!-- ROW 1 -->
-        <div class="row">
-
-            <!-- ORDER COUNTERS -->
-            <div class="col-sm-6 col-md-3">
-                <div class="menu-card">
-                    <div class="clearfix">
-                        <div class="pull-left">
-                            <h4 class="menu-title">Orders Counter</h4>
-                            <div class="menu-desc">All-time totals (today included)</div>
-                        </div>
-                        <div class="pull-right text-primary menu-ico">
-                            <i class="glyphicon glyphicon-dashboard"></i>
-                        </div>
-                    </div>
-
-                    <div class="row kpi-row">
-                        <div class="col-xs-6 kpi-item">
-                            <div class="kpi-label">Total Orders</div>
-                            <div class="kpi-value">
-                                <asp:Label ID="lblTotalOrders" runat="server" Text="0" />
-                            </div>
-                        </div>
-                        <div class="col-xs-6 kpi-item">
-                            <div class="kpi-label">Total Qty</div>
-                            <div class="kpi-value">
-                                <asp:Label ID="lblTotalQty" runat="server" Text="0" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="kpi-sub">
-                        Updated: <asp:Label ID="lblOrdersCounterUpdated" runat="server" Text="-" />
-                    </div>
-
-                    <asp:HiddenField ID="hfTotalOrders" runat="server" Value="0" />
-                    <asp:HiddenField ID="hfTotalQty" runat="server" Value="0" />
-                </div>
-            </div>
-
-            <!-- ✅ CURRENCY CONVERTER CARD (ortalanmış) -->
-            <div class="col-sm-6 col-md-3">
-                <div class="menu-card">
-                    <div class="clearfix">
-                        <div class="pull-left">
-                            <h4 class="menu-title">Currency Converter</h4>
-                            <div class="menu-desc">USD • PLN • EUR • TRY • CAD</div>
-                        </div>
-                        <div class="pull-right text-info menu-ico">
-                            <i class="glyphicon glyphicon-random"></i>
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-top:8px;">
-                        <label style="font-size:12px;color:#999;margin-bottom:4px;">Amount</label>
-                        <asp:TextBox ID="txtFxAmount" runat="server" CssClass="form-control"
-                            placeholder="e.g. 125.50" />
+                <div class="form-grid">
+                    <div class="field">
+                        <label>Amount</label>
+                        <asp:TextBox ID="txtFxAmount" runat="server" CssClass="input-modern" placeholder="0.00"></asp:TextBox>
                         <asp:RequiredFieldValidator ID="rfvFxAmount" runat="server"
                             ControlToValidate="txtFxAmount"
-                            ErrorMessage="Amount required"
-                            Display="Dynamic" ForeColor="#b30000" Font-Size="11px"
-                            ValidationGroup="FxGroup" />
+                            ErrorMessage="Amount is required"
+                            Display="Dynamic"
+                            ForeColor="#b30000"
+                            ValidationGroup="fx"></asp:RequiredFieldValidator>
                     </div>
 
-                    <div class="row">
-                        <div class="col-xs-6">
-                            <label style="font-size:12px;color:#999;margin-bottom:4px;">From</label>
-                            <asp:DropDownList ID="ddlFxFrom" runat="server" CssClass="form-control">
-                                <asp:ListItem Text="USD" Value="USD" />
-                                <asp:ListItem Text="PLN" Value="PLN" />
-                                <asp:ListItem Text="EUR" Value="EUR" />
-                                <asp:ListItem Text="TRY" Value="TRY" />
-                                <asp:ListItem Text="CAD" Value="CAD" />
-                            </asp:DropDownList>
-                        </div>
-                        <div class="col-xs-6">
-                            <label style="font-size:12px;color:#999;margin-bottom:4px;">To</label>
-                            <asp:DropDownList ID="ddlFxTo" runat="server" CssClass="form-control">
-                                <asp:ListItem Text="PLN" Value="PLN" />
-                                <asp:ListItem Text="USD" Value="USD" />
-                                <asp:ListItem Text="EUR" Value="EUR" />
-                                <asp:ListItem Text="TRY" Value="TRY" />
-                                <asp:ListItem Text="CAD" Value="CAD" />
-                            </asp:DropDownList>
-                        </div>
-                    </div>
-
-                    <asp:Button ID="btnFxConvert" runat="server" Text="Convert"
-                        CssClass="btn btn-default btn-block menu-btn" Style="margin-top:10px;"
-                        OnClick="btnFxConvert_Click"
-                        ValidationGroup="FxGroup" />
-
-                    <div style="margin-top:8px;">
-                        <asp:Label ID="lblFxConvertResult" runat="server" Text="-" Font-Bold="true" />
-                        <div class="fx-meta">
-                            Rate date: <asp:Label ID="lblFxConvertRateDate" runat="server" Text="-" />
-                        </div>
-                        <asp:Label ID="lblFxConvertMsg" runat="server" Visible="false"
-                            Style="display:block;margin-top:6px;font-size:12px;" />
-                    </div>
-                </div>
-            </div>
-
-            <!-- ✅ FX RATES CARD (NBP) -> Stock yerine taşındı -->
-            <div class="col-sm-6 col-md-3">
-                <div class="menu-card">
-                    <div class="clearfix">
-                        <div class="pull-left">
-                            <h4 class="menu-title">FX Rates (NBP)</h4>
-                            <div class="menu-desc">USDPLN • EURPLN • GBPPLN • TRYPLN</div>
-                        </div>
-                        <div class="pull-right text-warning menu-ico">
-                            <i class="glyphicon glyphicon-transfer"></i>
-                        </div>
-                    </div>
-
-                    <div class="row fx-grid" style="margin-top:4px;">
-                        <div class="col-xs-6 cell">
-                            <small>USDPLN</small><br />
-                            <strong><asp:Label ID="lblUsdPln" runat="server" Text="-" /></strong>
-                        </div>
-                        <div class="col-xs-6 cell">
-                            <small>EURPLN</small><br />
-                            <strong><asp:Label ID="lblEurPln" runat="server" Text="-" /></strong>
-                        </div>
-                        <div class="col-xs-6 cell">
-                            <small>GBPPLN</small><br />
-                            <strong><asp:Label ID="lblGbpPln" runat="server" Text="-" /></strong>
-                        </div>
-                        <div class="col-xs-6 cell">
-                            <small>TRYPLN</small><br />
-                            <strong><asp:Label ID="lblTryPln" runat="server" Text="-" /></strong>
-                        </div>
-                    </div>
-
-                    <div class="fx-meta">
-                        Date: <asp:Label ID="lblFxDate" runat="server" Text="-" />
-                        &nbsp;•&nbsp;
-                        Updated: <asp:Label ID="lblFxUpdated" runat="server" Text="-" />
-                    </div>
-
-                    <asp:Button ID="btnUpdateFx" runat="server" Text="Update from NBP"
-                        CssClass="btn btn-default btn-block menu-btn"
-                        OnClick="btnUpdateFx_Click"
-                        CausesValidation="false" />
-
-                    <asp:Label ID="lblFxMsg" runat="server" Visible="false"
-                        Style="display:block;margin-top:8px;font-size:12px;" />
-                </div>
-            </div>
-
-            <!-- PAYMENTS CARD -->
-            <div class="col-sm-6 col-md-3">
-                <div class="menu-card">
-                    <div class="clearfix">
-                        <div class="pull-left">
-                            <h4 class="menu-title">Payments</h4>
-                            <div class="menu-desc">Amazon • Etsy • eBay • Website</div>
-                        </div>
-                        <div class="pull-right text-success menu-ico">
-                            <i class="glyphicon glyphicon-credit-card"></i>
-                        </div>
-                    </div>
-
-                    <div class="form-group" style="margin-top:8px;">
-                        <label style="font-size:12px;color:#999;margin-bottom:4px;">Marketplace</label>
-                        <asp:DropDownList ID="ddlPayMarketplace" runat="server" CssClass="form-control">
-                            <asp:ListItem Text="Amazon" Value="Amazon" />
-                            <asp:ListItem Text="Etsy" Value="Etsy" />
-                            <asp:ListItem Text="eBay" Value="eBay" />
-                            <asp:ListItem Text="Website" Value="Website" />
+                    <div class="field">
+                        <label>From</label>
+                        <asp:DropDownList ID="ddlFxFrom" runat="server" CssClass="input-modern">
+                            <asp:ListItem Text="USD" Value="USD"></asp:ListItem>
+                            <asp:ListItem Text="PLN" Value="PLN"></asp:ListItem>
+                            <asp:ListItem Text="EUR" Value="EUR"></asp:ListItem>
+                            <asp:ListItem Text="TRY" Value="TRY"></asp:ListItem>
+                            <asp:ListItem Text="CAD" Value="CAD"></asp:ListItem>
                         </asp:DropDownList>
                     </div>
 
-                    <div class="row">
-                        <div class="col-xs-6">
-                            <div class="form-group">
-                                <label style="font-size:12px;color:#999;margin-bottom:4px;">Date</label>
-                                <asp:TextBox ID="txtPayDate" runat="server" CssClass="form-control" placeholder="yyyy-mm-dd" />
-                                <asp:RequiredFieldValidator ID="rfvPayDate" runat="server"
-                                    ControlToValidate="txtPayDate" ErrorMessage="Date required"
-                                    Display="Dynamic" ForeColor="#b30000" Font-Size="11px"
-                                    ValidationGroup="PayGroup" />
-                            </div>
-                        </div>
-                        <div class="col-xs-6">
-                            <div class="form-group">
-                                <label style="font-size:12px;color:#999;margin-bottom:4px;">Amount</label>
-                                <asp:TextBox ID="txtPayAmount" runat="server" CssClass="form-control" placeholder="e.g. 1250.50" />
-                                <asp:RequiredFieldValidator ID="rfvPayAmount" runat="server"
-                                    ControlToValidate="txtPayAmount" ErrorMessage="Amount required"
-                                    Display="Dynamic" ForeColor="#b30000" Font-Size="11px"
-                                    ValidationGroup="PayGroup" />
-                            </div>
-                        </div>
+                    <div class="field">
+                        <label>To</label>
+                        <asp:DropDownList ID="ddlFxTo" runat="server" CssClass="input-modern">
+                            <asp:ListItem Text="PLN" Value="PLN"></asp:ListItem>
+                            <asp:ListItem Text="USD" Value="USD"></asp:ListItem>
+                            <asp:ListItem Text="EUR" Value="EUR"></asp:ListItem>
+                            <asp:ListItem Text="TRY" Value="TRY"></asp:ListItem>
+                            <asp:ListItem Text="CAD" Value="CAD"></asp:ListItem>
+                        </asp:DropDownList>
                     </div>
 
-                    <asp:Button ID="btnPayAdd" runat="server" Text="Add Payment"
-                        CssClass="btn btn-default btn-block menu-btn"
-                        OnClick="btnPayAdd_ServerClick"
-                        ValidationGroup="PayGroup" />
-
-                    <asp:Label ID="lblPayMsg" runat="server" Visible="false"
-                        Style="display:block;margin-top:8px;font-size:12px;" />
-
-                    <div style="margin-top:10px;">
-                        <asp:GridView ID="gvPayments" runat="server"
-                            CssClass="table table-condensed table-striped"
-                            AutoGenerateColumns="False" GridLines="None" ShowHeader="true">
-                            <Columns>
-                                <asp:BoundField DataField="PayDate" HeaderText="Date" />
-                                <asp:BoundField DataField="Marketplace" HeaderText="Marketplace" />
-                                <asp:BoundField DataField="Amount" HeaderText="Amount" DataFormatString="{0:N2}" HtmlEncode="false" />
-                            </Columns>
-                        </asp:GridView>
-
-                        <div class="fx-meta">
-                            Last update: <asp:Label ID="lblPayUpdated" runat="server" Text="-" />
-                        </div>
+                    <div class="field">
+                        <asp:Button ID="btnFxConvert" runat="server" Text="Convert" CssClass="btn-main" ValidationGroup="fx" OnClick="btnFxConvert_Click" />
                     </div>
+                </div>
+
+                <div class="result-box">
+                    <div class="result-big">
+                        <asp:Label ID="lblFxConvertResult" runat="server" Text="-"></asp:Label>
+                    </div>
+                    <div class="result-meta">
+                        Rate date:
+                        <asp:Label ID="lblFxConvertRateDate" runat="server" Text="-"></asp:Label>
+                    </div>
+                    <asp:Label ID="lblFxConvertMsg" runat="server" CssClass="msg-label" Visible="false"></asp:Label>
                 </div>
             </div>
-
         </div>
 
-        <!-- ROW 2 -->
-        <div class="row">
+        <div class="col-md-4">
+            <div class="panel-card compact-panel">
+                <h2 class="panel-title">Navigation</h2>
+                <div class="panel-subtitle">Quick actions</div>
 
-            <!-- ✅ Dashboard & Reports (KALDIRILDI) -->
-            <asp:Panel ID="pnlDashboardReports" runat="server" Visible="false">
-                <div class="col-sm-6 col-md-3">
-                    <div class="menu-card">
-                        <div class="clearfix">
-                            <div class="pull-left">
-                                <h4 class="menu-title">Dashboard & Reports</h4>
-                                <div class="menu-desc">KPIs, charts, marketplace breakdowns</div>
-                            </div>
-                            <div class="pull-right text-info menu-ico">
-                                <i class="glyphicon glyphicon-stats"></i>
-                            </div>
-                        </div>
+                <div class="nav-wrap">
+                    <asp:Button ID="btnDashboardReports" runat="server" Text="Dashboard" CssClass="btn-light-nav" OnClick="toDashboard_click" />
+                    <asp:Button ID="btnNavProducts" runat="server" Text="Products" CssClass="btn-light-nav" OnClick="toProducts_click" />
+                    <asp:Button ID="btnNavOrders" runat="server" Text="Orders" CssClass="btn-light-nav" OnClick="toOrders_click" />
+                    <asp:Button ID="btnNavNewOrder" runat="server" Text="New Order" CssClass="btn-light-nav" OnClick="btnNewOrder_Click" />
+                </div>
 
-                        <asp:Button ID="btnDashboardReports" runat="server" Text="Open"
-                            CssClass="btn btn-default btn-block menu-btn"
-                            OnClick="toDashboard_click"
-                            CausesValidation="false" />
+                <div style="height:10px;"></div>
+
+                <h2 class="panel-title" style="font-size:15px;">FX Snapshot</h2>
+                <div class="panel-subtitle" style="margin-bottom:8px;">Latest stored rates</div>
+
+                <div class="fx-grid">
+                    <div class="fx-box">
+                        <div class="fx-code">USDPLN</div>
+                        <div class="fx-value"><asp:Label ID="lblUsdPln" runat="server" Text="-"></asp:Label></div>
+                    </div>
+                    <div class="fx-box">
+                        <div class="fx-code">EURPLN</div>
+                        <div class="fx-value"><asp:Label ID="lblEurPln" runat="server" Text="-"></asp:Label></div>
+                    </div>
+                    <div class="fx-box">
+                        <div class="fx-code">GBPPLN</div>
+                        <div class="fx-value"><asp:Label ID="lblGbpPln" runat="server" Text="-"></asp:Label></div>
+                    </div>
+                    <div class="fx-box">
+                        <div class="fx-code">TRYPLN</div>
+                        <div class="fx-value"><asp:Label ID="lblTryPln" runat="server" Text="-"></asp:Label></div>
                     </div>
                 </div>
-            </asp:Panel>
 
+                <div class="toolbar-row">
+                    <div class="toolbar-meta">
+                        <asp:Label ID="lblFxDate" runat="server" Text="-"></asp:Label>
+                        &nbsp;&nbsp;•&nbsp;&nbsp;
+                        <asp:Label ID="lblFxUpdated" runat="server" Text="-"></asp:Label>
+                    </div>
 
+                    <asp:Button ID="btnUpdateFx" runat="server" Text="Update FX" CssClass="btn-main" OnClick="btnUpdateFx_Click" />
+                </div>
+
+                <asp:Label ID="lblFxMsg" runat="server" CssClass="msg-label" Visible="false"></asp:Label>
+            </div>
         </div>
-
-        <!-- hidden fields -->
-        <asp:Label ID="lblLoginName" runat="server" Text="Label" Visible="False"></asp:Label>
-        <asp:Label ID="lblRole" runat="server" Text="Label" Visible="False"></asp:Label>
-
     </div>
 
-    <!-- Counter animation -->
-    <script type="text/javascript">
-        (function () {
-            function animateCounter(el, to) {
-                var duration = 900; // ms
-                var startTime = null;
-                el.textContent = "0";
+    <div class="row row-tight">
+        <div class="col-md-4">
+            <div class="panel-card compact-panel">
+                <h2 class="panel-title">Admin Note</h2>
+                <div class="panel-subtitle">Short reminder area</div>
 
-                function step(ts) {
-                    if (!startTime) startTime = ts;
-                    var p = Math.min((ts - startTime) / duration, 1);
-                    var val = Math.floor(to * p);
-                    el.textContent = val.toLocaleString();
-                    if (p < 1) requestAnimationFrame(step);
-                }
-                requestAnimationFrame(step);
-            }
+                <asp:TextBox
+                    ID="txtAdminNote"
+                    runat="server"
+                    TextMode="MultiLine"
+                    CssClass="textarea-modern"
+                    MaxLength="4000"
+                    placeholder="Write your note here..."></asp:TextBox>
 
-            document.addEventListener("DOMContentLoaded", function () {
-                var lblOrders = document.getElementById("<%= lblTotalOrders.ClientID %>");
-                var lblQty = document.getElementById("<%= lblTotalQty.ClientID %>");
-                var hfOrders = document.getElementById("<%= hfTotalOrders.ClientID %>");
-                var hfQty = document.getElementById("<%= hfTotalQty.ClientID %>");
+                <div class="toolbar-row">
+                    <div class="toolbar-meta">
+                        Last update:
+                        <asp:Label ID="lblAdminNoteUpdated" runat="server" Text="-"></asp:Label>
+                    </div>
 
-                if (lblOrders && hfOrders) {
-                    var t1 = parseInt(hfOrders.value || "0", 10);
-                    if (isNaN(t1)) t1 = 0;
-                    animateCounter(lblOrders, t1);
-                }
+                    <asp:Button
+                        ID="btnSaveAdminNote"
+                        runat="server"
+                        Text="Save Note"
+                        CssClass="btn-main"
+                        OnClick="btnSaveAdminNote_ServerClick" />
+                </div>
 
-                if (lblQty && hfQty) {
-                    var t2 = parseInt(hfQty.value || "0", 10);
-                    if (isNaN(t2)) t2 = 0;
-                    animateCounter(lblQty, t2);
-                }
-            });
-        })();
-    </script>
+                <asp:Label ID="lblAdminNoteMsg" runat="server" CssClass="msg-label" Visible="false"></asp:Label>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="panel-card compact-panel">
+                <h2 class="panel-title">Payments</h2>
+                <div class="panel-subtitle">Recent marketplace payment entries</div>
+
+                <div class="form-grid-pay">
+                    <div class="field">
+                        <label>Marketplace</label>
+                        <asp:DropDownList ID="ddlPayMarketplace" runat="server" CssClass="input-modern">
+                            <asp:ListItem Text="Amazon" Value="Amazon"></asp:ListItem>
+                            <asp:ListItem Text="Etsy" Value="Etsy"></asp:ListItem>
+                            <asp:ListItem Text="eBay" Value="eBay"></asp:ListItem>
+                            <asp:ListItem Text="Website" Value="Website"></asp:ListItem>
+                        </asp:DropDownList>
+                    </div>
+
+                    <div class="field">
+                        <label>Date</label>
+                        <asp:TextBox ID="txtPayDate" runat="server" CssClass="input-modern"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvPayDate" runat="server"
+                            ControlToValidate="txtPayDate"
+                            ErrorMessage="Date is required"
+                            Display="Dynamic"
+                            ForeColor="#b30000"
+                            ValidationGroup="pay"></asp:RequiredFieldValidator>
+                    </div>
+
+                    <div class="field">
+                        <label>Amount</label>
+                        <asp:TextBox ID="txtPayAmount" runat="server" CssClass="input-modern" placeholder="0.00"></asp:TextBox>
+                        <asp:RequiredFieldValidator ID="rfvPayAmount" runat="server"
+                            ControlToValidate="txtPayAmount"
+                            ErrorMessage="Amount is required"
+                            Display="Dynamic"
+                            ForeColor="#b30000"
+                            ValidationGroup="pay"></asp:RequiredFieldValidator>
+                    </div>
+
+                    <div class="field">
+                        <asp:Button ID="btnPayAdd" runat="server" Text="Save Payment" CssClass="btn-main" ValidationGroup="pay" OnClick="btnPayAdd_ServerClick" />
+                    </div>
+                </div>
+
+                <asp:Label ID="lblPayMsg" runat="server" CssClass="msg-label" Visible="false"></asp:Label>
+
+                <div class="table-wrap" style="margin-top:8px;">
+                    <asp:GridView ID="gvPayments" runat="server" AutoGenerateColumns="false" CssClass="table-clean" GridLines="None">
+                        <Columns>
+                            <asp:BoundField DataField="PayDate" HeaderText="Date" />
+                            <asp:BoundField DataField="Marketplace" HeaderText="Marketplace" />
+                            <asp:BoundField DataField="Amount" HeaderText="Amount" DataFormatString="{0:0.00}" HtmlEncode="false" />
+                        </Columns>
+                        <EmptyDataTemplate>
+                            <div style="padding:12px;color:#6b7280;font-size:12px;">No payments found.</div>
+                        </EmptyDataTemplate>
+                    </asp:GridView>
+                </div>
+
+                <div class="toolbar-meta" style="margin-top:10px;">
+                    Last update:
+                    <asp:Label ID="lblPayUpdated" runat="server" Text="-"></asp:Label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <asp:Panel ID="pnlDashboardReports" runat="server" Style="display:none;"></asp:Panel>
+
+    <div class="hidden-block">
+        <asp:Label ID="lblLoginName" runat="server" Text=""></asp:Label>
+        <asp:Label ID="lblRole" runat="server" Text=""></asp:Label>
+
+        <asp:Button ID="btnHeroProducts" runat="server" Text="Products" OnClick="toProducts_click" />
+        <asp:Button ID="btnHeroOrders" runat="server" Text="Orders" OnClick="toOrders_click" />
+        <asp:Button ID="btnHeroNewOrder" runat="server" Text="New Order" OnClick="btnNewOrder_Click" />
+        <asp:Button ID="btnHeroDashboard" runat="server" Text="Dashboard" OnClick="toDashboard_click" />
+    </div>
+
+</div>
 
 </asp:Content>

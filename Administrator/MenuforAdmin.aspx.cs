@@ -12,6 +12,7 @@ namespace Feniks.Admin
     public partial class MenuforAdmin : System.Web.UI.Page
     {
         private static string ConnStr => ConfigurationManager.ConnectionStrings["constr"].ConnectionString;
+        private const string AdminNoteKey = "MenuforAdmin_Main";
 
         protected void Page_Load(object sender, EventArgs e)
         {
@@ -19,30 +20,24 @@ namespace Feniks.Admin
             {
                 EnsureAuthenticated();
 
-                // ✅ Sarı alanlar kapalı: Alert + Hero + 2 kart
-                divInfo.Visible = false;
                 pnlHero.Visible = false;
-                //pnlOrderManagement.Visible = false;
                 pnlDashboardReports.Visible = false;
 
-                // Order counters
                 LoadOrderCounters();
 
-                // Load FX (DB)
-                LoadLatestFxRates();
+                OpenOrderQuantityValue();
+                int openQty;
+                divInfo.Visible = int.TryParse(lblOpenQty.Text, out openQty) && openQty > 0;
 
-                // If old, refresh silently
+                LoadLatestFxRates();
                 EnsureFxRatesFresh();
-
-                // Reload FX after refresh
                 LoadLatestFxRates();
-
-                // Top bar synced with FX table
                 SyncTopBarWithLatestFx();
 
-                // Payments
                 InitPaymentsUi();
                 LoadLatestPayments();
+
+                LoadAdminNote();
             }
         }
 
@@ -70,14 +65,10 @@ namespace Feniks.Admin
             {
                 var dt = new DataTable();
                 da.Fill(dt);
-
                 lblOpenQty.Text = (dt.Rows.Count > 0) ? dt.Rows[0]["OpenOrderQty"].ToString() : "0";
             }
         }
 
-        // =========================================================
-        // ORDER COUNTERS
-        // =========================================================
         private void LoadOrderCounters()
         {
             long totalOrders = 0;
@@ -91,6 +82,7 @@ namespace Feniks.Admin
             ", con))
             {
                 con.Open();
+
                 using (var r = cmd.ExecuteReader())
                 {
                     if (r.Read())
@@ -103,27 +95,28 @@ namespace Feniks.Admin
 
             lblTotalOrders.Text = totalOrders.ToString();
             lblTotalQty.Text = totalQty.ToString();
-
             hfTotalOrders.Value = totalOrders.ToString();
             hfTotalQty.Value = totalQty.ToString();
-
             lblOrdersCounterUpdated.Text = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
         }
 
-        // =========================================================
-        // FX (NBP -> DB)
-        // =========================================================
         private void LoadLatestFxRates()
         {
             using (var con = new SqlConnection(ConnStr))
             using (var cmd = new SqlCommand(@"
                 SELECT TOP (1)
-                    RateDate, UsdPln, EurPln, GbpPln, TryPln,
+                    RateDate,
+                    UsdPln,
+                    EurPln,
+                    GbpPln,
+                    TryPln,
                     ISNULL(UpdatedAt, CreatedAt) AS LastUpdate
                 FROM dbo.T_FxUsdPln
-                ORDER BY RateDate DESC;", con))
+                ORDER BY RateDate DESC;
+            ", con))
             {
                 con.Open();
+
                 using (var r = cmd.ExecuteReader())
                 {
                     if (!r.Read())
@@ -135,7 +128,10 @@ namespace Feniks.Admin
                     var d = Convert.ToDateTime(r["RateDate"]).ToString("yyyy-MM-dd");
                     var u = Convert.ToDateTime(r["LastUpdate"]).ToString("yyyy-MM-dd HH:mm");
 
-                    string usd = (r["UsdPln"] == DBNull.Value) ? "-" : Convert.ToDecimal(r["UsdPln"]).ToString("0.0000", CultureInfo.InvariantCulture);
+                    string usd = (r["UsdPln"] == DBNull.Value)
+                        ? "-"
+                        : Convert.ToDecimal(r["UsdPln"]).ToString("0.0000", CultureInfo.InvariantCulture);
+
                     string eur = SafeDec(r, "EurPln");
                     string gbp = SafeDec(r, "GbpPln");
                     string trY = SafeDec(r, "TryPln");
@@ -153,7 +149,10 @@ namespace Feniks.Admin
                 if (v == null || v == DBNull.Value) return "-";
                 return Convert.ToDecimal(v).ToString("0.0000", CultureInfo.InvariantCulture);
             }
-            catch { return "-"; }
+            catch
+            {
+                return "-";
+            }
         }
 
         private void SetFxUi(string usd, string eur, string gbp, string trY, string date, string updated)
@@ -162,7 +161,6 @@ namespace Feniks.Admin
             lblEurPln.Text = eur;
             lblGbpPln.Text = gbp;
             lblTryPln.Text = trY;
-
             lblFxDate.Text = date;
             lblFxUpdated.Text = updated;
         }
@@ -171,11 +169,18 @@ namespace Feniks.Admin
         {
             using (var con = new SqlConnection(ConnStr))
             using (var cmd = new SqlCommand(@"
-                SELECT TOP (1) RateDate, UsdPln, EurPln, CadPln, TryPln
+                SELECT TOP (1)
+                    RateDate,
+                    UsdPln,
+                    EurPln,
+                    CadPln,
+                    TryPln
                 FROM dbo.T_FxUsdPln
-                ORDER BY RateDate DESC;", con))
+                ORDER BY RateDate DESC;
+            ", con))
             {
                 con.Open();
+
                 using (var r = cmd.ExecuteReader())
                 {
                     if (!r.Read())
@@ -187,13 +192,16 @@ namespace Feniks.Admin
                         return;
                     }
 
-                    lblUSD.Text = (r["UsdPln"] == DBNull.Value) ? "0.0000"
+                    lblUSD.Text = (r["UsdPln"] == DBNull.Value)
+                        ? "0.0000"
                         : Convert.ToDecimal(r["UsdPln"]).ToString("0.0000", CultureInfo.InvariantCulture);
 
-                    lblEUR.Text = (r["EurPln"] == DBNull.Value) ? "0.0000"
+                    lblEUR.Text = (r["EurPln"] == DBNull.Value)
+                        ? "0.0000"
                         : Convert.ToDecimal(r["EurPln"]).ToString("0.0000", CultureInfo.InvariantCulture);
 
-                    lblCAD.Text = (r["CadPln"] == DBNull.Value) ? "0.0000"
+                    lblCAD.Text = (r["CadPln"] == DBNull.Value)
+                        ? "0.0000"
                         : Convert.ToDecimal(r["CadPln"]).ToString("0.0000", CultureInfo.InvariantCulture);
 
                     if (r["TryPln"] == DBNull.Value)
@@ -203,7 +211,9 @@ namespace Feniks.Admin
                     else
                     {
                         decimal tryPln = Convert.ToDecimal(r["TryPln"]);
-                        lblPLN.Text = (tryPln > 0) ? (1m / tryPln).ToString("0.0000", CultureInfo.InvariantCulture) : "0.0000";
+                        lblPLN.Text = (tryPln > 0)
+                            ? (1m / tryPln).ToString("0.0000", CultureInfo.InvariantCulture)
+                            : "0.0000";
                     }
                 }
             }
@@ -239,7 +249,9 @@ namespace Feniks.Admin
             {
                 con.Open();
                 var o = cmd.ExecuteScalar();
-                if (o != null && o != DBNull.Value) lastDate = Convert.ToDateTime(o);
+
+                if (o != null && o != DBNull.Value)
+                    lastDate = Convert.ToDateTime(o);
             }
 
             if (!lastDate.HasValue || lastDate.Value.Date < DateTime.UtcNow.Date.AddDays(-2))
@@ -251,6 +263,7 @@ namespace Feniks.Admin
         private void UpdateFxFromNbp()
         {
             string json;
+
             using (var wc = new WebClient())
             {
                 wc.Encoding = System.Text.Encoding.UTF8;
@@ -284,15 +297,20 @@ namespace Feniks.Admin
                 using (var cmd = new SqlCommand(@"
                     MERGE dbo.T_FxUsdPln AS tgt
                     USING (SELECT @d AS RateDate) src
-                    ON tgt.RateDate = src.RateDate
+                        ON tgt.RateDate = src.RateDate
                     WHEN MATCHED THEN
                         UPDATE SET
-                            UsdPln=@u, EurPln=@e, GbpPln=@g, TryPln=@t, CadPln=@c,
+                            UsdPln=@u,
+                            EurPln=@e,
+                            GbpPln=@g,
+                            TryPln=@t,
+                            CadPln=@c,
                             Source='NBP',
                             UpdatedAt=SYSUTCDATETIME()
                     WHEN NOT MATCHED THEN
                         INSERT (RateDate, UsdPln, EurPln, GbpPln, TryPln, CadPln, Source, CreatedAt)
-                        VALUES (@d,@u,@e,@g,@t,@c,'NBP',SYSUTCDATETIME());", con))
+                        VALUES (@d,@u,@e,@g,@t,@c,'NBP',SYSUTCDATETIME());
+                ", con))
                 {
                     cmd.Parameters.AddWithValue("@d", rateDate);
                     cmd.Parameters.AddWithValue("@u", usd);
@@ -300,6 +318,7 @@ namespace Feniks.Admin
                     cmd.Parameters.AddWithValue("@g", gbp);
                     cmd.Parameters.AddWithValue("@t", trY);
                     cmd.Parameters.AddWithValue("@c", cad);
+
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -312,7 +331,8 @@ namespace Feniks.Admin
                 SELECT COUNT(*)
                 FROM sys.columns
                 WHERE object_id = OBJECT_ID('dbo.T_FxUsdPln')
-                  AND name IN ('EurPln','GbpPln','TryPln','CadPln');", con))
+                  AND name IN ('EurPln','GbpPln','TryPln','CadPln');
+            ", con))
             {
                 con.Open();
                 var cnt = Convert.ToInt32(cmd.ExecuteScalar());
@@ -332,9 +352,6 @@ namespace Feniks.Admin
             public decimal mid { get; set; }
         }
 
-        // =========================================================
-        // Currency Converter
-        // =========================================================
         protected void btnFxConvert_Click(object sender, EventArgs e)
         {
             lblFxConvertMsg.Visible = false;
@@ -342,17 +359,20 @@ namespace Feniks.Admin
             try
             {
                 var raw = (txtFxAmount.Text ?? "").Trim();
+
                 if (string.IsNullOrWhiteSpace(raw))
                     throw new Exception("Amount is empty.");
 
                 decimal amount;
+
                 if (!decimal.TryParse(raw, NumberStyles.Any, CultureInfo.CurrentCulture, out amount) &&
                     !decimal.TryParse(raw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out amount))
                 {
                     throw new Exception("Invalid amount format.");
                 }
 
-                if (amount < 0) throw new Exception("Amount cannot be negative.");
+                if (amount < 0)
+                    throw new Exception("Amount cannot be negative.");
 
                 var from = ddlFxFrom.SelectedValue;
                 var to = ddlFxTo.SelectedValue;
@@ -384,28 +404,47 @@ namespace Feniks.Admin
         private decimal GetPlnRate(string currencyCode)
         {
             currencyCode = (currencyCode ?? "").Trim().ToUpperInvariant();
-            if (currencyCode == "PLN") return 1m;
+
+            if (currencyCode == "PLN")
+                return 1m;
 
             using (var con = new SqlConnection(ConnStr))
             using (var cmd = new SqlCommand(@"
-                SELECT TOP (1) RateDate, UsdPln, EurPln, TryPln, CadPln
+                SELECT TOP (1)
+                    RateDate,
+                    UsdPln,
+                    EurPln,
+                    TryPln,
+                    CadPln
                 FROM dbo.T_FxUsdPln
-                ORDER BY RateDate DESC;", con))
+                ORDER BY RateDate DESC;
+            ", con))
             {
                 con.Open();
+
                 using (var r = cmd.ExecuteReader())
                 {
                     if (!r.Read())
                         throw new Exception("No FX data in DB. Please update from NBP.");
 
                     object val;
+
                     switch (currencyCode)
                     {
-                        case "USD": val = SafeGet(r, "UsdPln"); break;
-                        case "EUR": val = SafeGet(r, "EurPln"); break;
-                        case "TRY": val = SafeGet(r, "TryPln"); break;
-                        case "CAD": val = SafeGet(r, "CadPln"); break;
-                        default: throw new Exception("Unsupported currency: " + currencyCode);
+                        case "USD":
+                            val = SafeGet(r, "UsdPln");
+                            break;
+                        case "EUR":
+                            val = SafeGet(r, "EurPln");
+                            break;
+                        case "TRY":
+                            val = SafeGet(r, "TryPln");
+                            break;
+                        case "CAD":
+                            val = SafeGet(r, "CadPln");
+                            break;
+                        default:
+                            throw new Exception("Unsupported currency: " + currencyCode);
                     }
 
                     if (val == null || val == DBNull.Value)
@@ -418,7 +457,14 @@ namespace Feniks.Admin
 
         private object SafeGet(IDataRecord r, string col)
         {
-            try { return r[col]; } catch { return DBNull.Value; }
+            try
+            {
+                return r[col];
+            }
+            catch
+            {
+                return DBNull.Value;
+            }
         }
 
         private string GetLatestFxRateDateText()
@@ -430,19 +476,28 @@ namespace Feniks.Admin
                 {
                     con.Open();
                     var o = cmd.ExecuteScalar();
-                    if (o == null || o == DBNull.Value) return "-";
+
+                    if (o == null || o == DBNull.Value)
+                        return "-";
+
                     return Convert.ToDateTime(o).ToString("yyyy-MM-dd");
                 }
             }
-            catch { return "-"; }
+            catch
+            {
+                return "-";
+            }
         }
 
-        // =========================================================
-        // PAYMENTS
-        // =========================================================
         private void InitPaymentsUi()
         {
-            try { txtPayDate.Attributes["type"] = "date"; } catch { }
+            try
+            {
+                txtPayDate.Attributes["type"] = "date";
+            }
+            catch
+            {
+            }
 
             if (string.IsNullOrWhiteSpace(txtPayDate.Text))
                 txtPayDate.Text = DateTime.Now.ToString("yyyy-MM-dd");
@@ -452,12 +507,13 @@ namespace Feniks.Admin
         {
             using (var con = new SqlConnection(ConnStr))
             using (var cmd = new SqlCommand(@"
-                SELECT TOP (8)
-                    CONVERT(varchar(10), PayDate, 23) AS PayDate,
-                    Marketplace,
-                    Amount
-                FROM dbo.T_MarketplacePayments
-                ORDER BY PayDate DESC, PaymentId DESC;", con))
+        SELECT TOP (4)
+            CONVERT(varchar(10), PayDate, 23) AS PayDate,
+            Marketplace,
+            Amount
+        FROM dbo.T_MarketplacePayments
+        ORDER BY PayDate DESC, PaymentId DESC;
+    ", con))
             using (var da = new SqlDataAdapter(cmd))
             {
                 var dt = new DataTable();
@@ -476,6 +532,7 @@ namespace Feniks.Admin
             try
             {
                 var marketplace = (ddlPayMarketplace.SelectedValue ?? "").Trim();
+
                 if (string.IsNullOrWhiteSpace(marketplace))
                     throw new Exception("Marketplace is empty.");
 
@@ -489,22 +546,26 @@ namespace Feniks.Admin
                 }
 
                 var amountRaw = (txtPayAmount.Text ?? "").Trim();
+
                 if (string.IsNullOrWhiteSpace(amountRaw))
                     throw new Exception("Amount is empty.");
 
                 decimal amount;
+
                 if (!decimal.TryParse(amountRaw, NumberStyles.Any, CultureInfo.CurrentCulture, out amount) &&
                     !decimal.TryParse(amountRaw.Replace(",", "."), NumberStyles.Any, CultureInfo.InvariantCulture, out amount))
                 {
                     throw new Exception("Invalid amount format.");
                 }
 
-                if (amount <= 0) throw new Exception("Amount must be greater than 0.");
+                if (amount <= 0)
+                    throw new Exception("Amount must be greater than 0.");
 
                 using (var con = new SqlConnection(ConnStr))
                 using (var cmd = new SqlCommand(@"
                     INSERT INTO dbo.T_MarketplacePayments (Marketplace, PayDate, Amount)
-                    VALUES (@m, @d, @a);", con))
+                    VALUES (@m, @d, @a);
+                ", con))
                 {
                     cmd.Parameters.AddWithValue("@m", marketplace);
                     cmd.Parameters.AddWithValue("@d", payDate.Date);
@@ -530,9 +591,81 @@ namespace Feniks.Admin
             }
         }
 
-        // =========================================================
-        // NAVIGATION
-        // =========================================================
+        private void LoadAdminNote()
+        {
+            using (var con = new SqlConnection(ConnStr))
+            using (var cmd = new SqlCommand("dbo.SP_AdminNote_Get", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@NoteKey", AdminNoteKey);
+
+                con.Open();
+
+                using (var r = cmd.ExecuteReader())
+                {
+                    if (r.Read())
+                    {
+                        txtAdminNote.Text = r["NoteText"] == DBNull.Value
+                            ? string.Empty
+                            : Convert.ToString(r["NoteText"]);
+
+                        DateTime? updatedAt = null;
+
+                        if (r["UpdatedAt"] != DBNull.Value)
+                            updatedAt = Convert.ToDateTime(r["UpdatedAt"]);
+                        else if (r["CreatedAt"] != DBNull.Value)
+                            updatedAt = Convert.ToDateTime(r["CreatedAt"]);
+
+                        lblAdminNoteUpdated.Text = updatedAt.HasValue
+                            ? updatedAt.Value.ToString("yyyy-MM-dd HH:mm")
+                            : "-";
+                    }
+                    else
+                    {
+                        txtAdminNote.Text = string.Empty;
+                        lblAdminNoteUpdated.Text = "-";
+                    }
+                }
+            }
+        }
+
+        protected void btnSaveAdminNote_ServerClick(object sender, EventArgs e)
+        {
+            lblAdminNoteMsg.Visible = false;
+
+            try
+            {
+                string noteText = (txtAdminNote.Text ?? string.Empty).Trim();
+                string userName = (Page.User != null && Page.User.Identity != null && Page.User.Identity.IsAuthenticated)
+                    ? (Page.User.Identity.Name ?? "System")
+                    : "System";
+
+                using (var con = new SqlConnection(ConnStr))
+                using (var cmd = new SqlCommand("dbo.SP_AdminNote_Upsert", con))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddWithValue("@NoteKey", AdminNoteKey);
+                    cmd.Parameters.AddWithValue("@NoteText", noteText);
+                    cmd.Parameters.AddWithValue("@UserName", userName);
+
+                    con.Open();
+                    cmd.ExecuteNonQuery();
+                }
+
+                LoadAdminNote();
+
+                lblAdminNoteMsg.Visible = true;
+                lblAdminNoteMsg.Style["color"] = "#2d862d";
+                lblAdminNoteMsg.Text = "Note saved successfully.";
+            }
+            catch (Exception ex)
+            {
+                lblAdminNoteMsg.Visible = true;
+                lblAdminNoteMsg.Style["color"] = "#b30000";
+                lblAdminNoteMsg.Text = "Note save failed: " + ex.Message;
+            }
+        }
+
         protected void toProducts_click(object sender, EventArgs e)
         {
             Response.Redirect("~/Administrator/MenuforProductManagement.aspx");
@@ -547,12 +680,6 @@ namespace Feniks.Admin
         {
             Response.Redirect("~/Administrator/OrderCreate.aspx");
         }
-
-        // Stock Management UI’dan kaldırıldı, istersen bunu da silebilirsin:
-        // protected void toStockManagement_click(object sender, EventArgs e)
-        // {
-        //     Response.Redirect("~/Administrator/StockManagement.aspx");
-        // }
 
         protected void toDashboard_click(object sender, EventArgs e)
         {

@@ -195,6 +195,42 @@ namespace Feniks.Admin
         protected global::System.Web.UI.WebControls.Label lblFxConvertMsg;
 
         /// <summary>
+        /// btnDashboardReports control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnDashboardReports;
+
+        /// <summary>
+        /// btnNavProducts control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnNavProducts;
+
+        /// <summary>
+        /// btnNavOrders control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnNavOrders;
+
+        /// <summary>
+        /// btnNavNewOrder control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnNavNewOrder;
+
+        /// <summary>
         /// lblUsdPln control.
         /// </summary>
         /// <remarks>
@@ -265,6 +301,42 @@ namespace Feniks.Admin
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label lblFxMsg;
+
+        /// <summary>
+        /// txtAdminNote control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.TextBox txtAdminNote;
+
+        /// <summary>
+        /// lblAdminNoteUpdated control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblAdminNoteUpdated;
+
+        /// <summary>
+        /// btnSaveAdminNote control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnSaveAdminNote;
+
+        /// <summary>
+        /// lblAdminNoteMsg control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblAdminNoteMsg;
 
         /// <summary>
         /// ddlPayMarketplace control.
@@ -357,15 +429,6 @@ namespace Feniks.Admin
         protected global::System.Web.UI.WebControls.Panel pnlDashboardReports;
 
         /// <summary>
-        /// btnDashboardReports control.
-        /// </summary>
-        /// <remarks>
-        /// Auto-generated field.
-        /// To modify move field declaration from designer file to code-behind file.
-        /// </remarks>
-        protected global::System.Web.UI.WebControls.Button btnDashboardReports;
-
-        /// <summary>
         /// lblLoginName control.
         /// </summary>
         /// <remarks>
@@ -382,5 +445,41 @@ namespace Feniks.Admin
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Label lblRole;
+
+        /// <summary>
+        /// btnHeroProducts control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnHeroProducts;
+
+        /// <summary>
+        /// btnHeroOrders control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnHeroOrders;
+
+        /// <summary>
+        /// btnHeroNewOrder control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnHeroNewOrder;
+
+        /// <summary>
+        /// btnHeroDashboard control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnHeroDashboard;
     }
 }
