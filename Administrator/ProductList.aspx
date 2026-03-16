@@ -533,7 +533,7 @@
                         <ItemStyle CssClass="photo-cell" Width="76px" />
                         <ItemTemplate>
                             <a class="photo-link"
-                               href='<%# "ProductImages.aspx?sku=" + Server.UrlEncode(Convert.ToString(Eval("SKU"))) %>'
+                               href='<%# "ProductAmazonMainImage.aspx?sku=" + Server.UrlEncode(Convert.ToString(Eval("SKU"))) %>'
                                title="Open product images">
                                 <span class="photo-frame">
                                     <img src='<%# ResolveUrl("~/Administrator/ProductMainImageHandler.ashx?sku=" + Server.UrlEncode(Convert.ToString(Eval("SKU"))) + "&v=" + Convert.ToString(Eval("ProductID"))) %>'
