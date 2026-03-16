@@ -38,6 +38,7 @@ namespace Feniks.Admin
                 LoadLatestPayments();
 
                 LoadAdminNote();
+                LoadEtsyMiniInfo();
             }
         }
 
@@ -507,13 +508,13 @@ namespace Feniks.Admin
         {
             using (var con = new SqlConnection(ConnStr))
             using (var cmd = new SqlCommand(@"
-        SELECT TOP (4)
-            CONVERT(varchar(10), PayDate, 23) AS PayDate,
-            Marketplace,
-            Amount
-        FROM dbo.T_MarketplacePayments
-        ORDER BY PayDate DESC, PaymentId DESC;
-    ", con))
+                SELECT TOP (4)
+                    CONVERT(varchar(10), PayDate, 23) AS PayDate,
+                    Marketplace,
+                    Amount
+                FROM dbo.T_MarketplacePayments
+                ORDER BY PayDate DESC, PaymentId DESC;
+            ", con))
             using (var da = new SqlDataAdapter(cmd))
             {
                 var dt = new DataTable();
@@ -666,6 +667,83 @@ namespace Feniks.Admin
             }
         }
 
+        private void LoadEtsyMiniInfo()
+        {
+            try
+            {
+                bool hasInboxTable = false;
+                bool hasSyncTable = false;
+
+                using (var con = new SqlConnection(ConnStr))
+                using (var cmd = new SqlCommand(@"
+            SELECT
+                CASE WHEN OBJECT_ID('dbo.T_EtsyOrderInbox', 'U') IS NOT NULL THEN 1 ELSE 0 END AS HasInbox,
+                CASE WHEN OBJECT_ID('dbo.T_EtsySyncState', 'U') IS NOT NULL THEN 1 ELSE 0 END AS HasSync;
+        ", con))
+                {
+                    con.Open();
+                    using (var r = cmd.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            hasInboxTable = Convert.ToInt32(r["HasInbox"]) == 1;
+                            hasSyncTable = Convert.ToInt32(r["HasSync"]) == 1;
+                        }
+                    }
+                }
+
+                if (!hasInboxTable)
+                {
+                    pnlEtsyInfo.Visible = false;
+                    return;
+                }
+
+                int pendingCount = 0;
+                string lastSync = "-";
+
+                using (var con = new SqlConnection(ConnStr))
+                {
+                    con.Open();
+
+                    using (var cmdPending = new SqlCommand(@"
+                SELECT COUNT(*)
+                FROM dbo.T_EtsyOrderInbox
+                WHERE ISNULL(ImportedToLamax, 0) = 0;
+            ", con))
+                    {
+                        pendingCount = Convert.ToInt32(cmdPending.ExecuteScalar());
+                    }
+
+                    if (hasSyncTable)
+                    {
+                        long shopId = new Feniks.Services.EtsyApiClient().ShopId;
+
+                        using (var cmdSync = new SqlCommand(@"
+                    SELECT TOP (1) LastSuccessUtc
+                    FROM dbo.T_EtsySyncState
+                    WHERE ShopId = @ShopId
+                    ORDER BY EtsySyncStateID DESC;
+                ", con))
+                        {
+                            cmdSync.Parameters.AddWithValue("@ShopId", shopId);
+
+                            var o = cmdSync.ExecuteScalar();
+                            if (o != null && o != DBNull.Value)
+                                lastSync = Convert.ToDateTime(o).ToString("yyyy-MM-dd HH:mm");
+                        }
+                    }
+                }
+
+                lblEtsyPendingCount.Text = pendingCount.ToString();
+                lblEtsyLastSync.Text = lastSync;
+                pnlEtsyInfo.Visible = true;
+            }
+            catch
+            {
+                pnlEtsyInfo.Visible = false;
+            }
+        }
+
         protected void toProducts_click(object sender, EventArgs e)
         {
             Response.Redirect("~/Administrator/MenuforProductManagement.aspx");
@@ -684,6 +762,21 @@ namespace Feniks.Admin
         protected void toDashboard_click(object sender, EventArgs e)
         {
             Response.Redirect("~/Administrator/Dashboard.aspx");
+        }
+
+        protected void toEtsyInbox_click(object sender, EventArgs e)
+        {
+            Response.Redirect("~/Administrator/EtsyOrdersInbox.aspx");
+        }
+
+        protected void toEtsyConnect_click(object sender, EventArgs e)
+        {
+            Response.Redirect("~/Administrator/EtsyOAuthStart.aspx");
+        }
+
+        protected void toEtsySync_click(object sender, EventArgs e)
+        {
+            Response.Redirect("~/Administrator/EtsySync.ashx");
         }
     }
 }

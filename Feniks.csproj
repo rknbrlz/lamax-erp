@@ -115,6 +115,9 @@
     <Content Include="About.aspx" />
     <Content Include="Administrator\AmazonReportUpload.aspx" />
     <Content Include="Administrator\Dashboard.aspx" />
+    <Content Include="Administrator\EtsyOAuthCallback.aspx" />
+    <Content Include="Administrator\EtsyOAuthStart.aspx" />
+    <Content Include="Administrator\EtsyOrdersInbox.aspx" />
     <Content Include="Administrator\imagesnew\352269_all_clear_icon.png" />
     <Content Include="Administrator\imagesnew\8666609_user_icon.png" />
     <Content Include="Administrator\imagesnew\Amazon_icon.png" />
@@ -211,6 +214,7 @@
     <Content Include="Administrator\ProductImageDownload.ashx" />
     <Content Include="ProductAmazonMainImageHandler.ashx" />
     <Content Include="Administrator\ProductMainImageHandler.ashx" />
+    <Content Include="Administrator\EtsySync.ashx" />
     <None Include="Properties\PublishProfiles\FolderProfile.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - Web Deploy.pubxml" />
@@ -287,6 +291,30 @@
     </Compile>
     <Compile Include="Administrator\DashboardApi.ashx.cs">
       <DependentUpon>DashboardApi.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\EtsyOAuthCallback.aspx.cs">
+      <DependentUpon>EtsyOAuthCallback.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\EtsyOAuthCallback.aspx.designer.cs">
+      <DependentUpon>EtsyOAuthCallback.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\EtsyOAuthStart.aspx.cs">
+      <DependentUpon>EtsyOAuthStart.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\EtsyOAuthStart.aspx.designer.cs">
+      <DependentUpon>EtsyOAuthStart.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\EtsyOrdersInbox.aspx.cs">
+      <DependentUpon>EtsyOrdersInbox.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\EtsyOrdersInbox.aspx.designer.cs">
+      <DependentUpon>EtsyOrdersInbox.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="Administrator\EtsySync.ashx.cs">
+      <DependentUpon>EtsySync.ashx</DependentUpon>
     </Compile>
     <Compile Include="Administrator\Keywords.aspx.cs">
       <DependentUpon>Keywords.aspx</DependentUpon>
@@ -620,6 +648,8 @@
       <DependentUpon>RoleManage.aspx</DependentUpon>
     </Compile>
     <Compile Include="Services\BackgroundRemovalService.cs" />
+    <Compile Include="Services\EtsyApiClient.cs" />
+    <Compile Include="Services\EtsyOrderSyncService.cs" />
     <Compile Include="SignupRequest.aspx.cs">
       <DependentUpon>SignupRequest.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>

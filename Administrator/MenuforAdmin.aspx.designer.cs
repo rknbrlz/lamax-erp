@@ -69,6 +69,33 @@ namespace Feniks.Admin
         protected global::System.Web.UI.WebControls.Label lblOpenQty;
 
         /// <summary>
+        /// pnlEtsyInfo control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Panel pnlEtsyInfo;
+
+        /// <summary>
+        /// lblEtsyPendingCount control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblEtsyPendingCount;
+
+        /// <summary>
+        /// lblEtsyLastSync control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Label lblEtsyLastSync;
+
+        /// <summary>
         /// pnlHero control.
         /// </summary>
         /// <remarks>
@@ -229,6 +256,33 @@ namespace Feniks.Admin
         /// To modify move field declaration from designer file to code-behind file.
         /// </remarks>
         protected global::System.Web.UI.WebControls.Button btnNavNewOrder;
+
+        /// <summary>
+        /// btnNavEtsyInbox control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnNavEtsyInbox;
+
+        /// <summary>
+        /// btnNavEtsyConnect control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnNavEtsyConnect;
+
+        /// <summary>
+        /// btnNavEtsySync control.
+        /// </summary>
+        /// <remarks>
+        /// Auto-generated field.
+        /// To modify move field declaration from designer file to code-behind file.
+        /// </remarks>
+        protected global::System.Web.UI.WebControls.Button btnNavEtsySync;
 
         /// <summary>
         /// lblUsdPln control.

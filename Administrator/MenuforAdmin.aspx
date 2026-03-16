@@ -85,6 +85,17 @@
         font-weight: 600;
     }
 
+    .etsy-banner {
+        background: #f6f8ff;
+        border: 1px solid #dbe3ff;
+        color: #304674;
+        padding: 9px 12px;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
     .row-tight {
         margin-bottom: 12px;
     }
@@ -245,6 +256,23 @@
         color: #162033;
     }
 
+    .btn-etsy-nav {
+        height: 36px;
+        border: 1px solid #cfd8ff;
+        border-radius: 7px;
+        padding: 0 12px;
+        background: #f7f9ff;
+        color: #233a70;
+        font-size: 13px;
+        font-weight: 700;
+    }
+
+    .btn-etsy-nav:hover,
+    .btn-etsy-nav:focus {
+        background: #edf2ff;
+        color: #1d315f;
+    }
+
     .result-box {
         margin-top: 10px;
         border: 1px solid #e5e7eb;
@@ -363,6 +391,21 @@
         gap: 8px;
     }
 
+    .nav-divider {
+        height: 1px;
+        background: #e8edf3;
+        margin: 12px 0 10px 0;
+    }
+
+    .nav-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: .35px;
+        margin-bottom: 8px;
+    }
+
     .hidden-block,
     .hero-box {
         display: none;
@@ -458,6 +501,14 @@
         Pending orders in action:
         <asp:Label ID="lblOpenQty" runat="server" Text="0"></asp:Label>
     </div>
+
+    <asp:Panel ID="pnlEtsyInfo" runat="server" CssClass="etsy-banner" Visible="false">
+        Etsy inbox pending:
+        <asp:Label ID="lblEtsyPendingCount" runat="server" Text="0"></asp:Label>
+        &nbsp;&nbsp;•&nbsp;&nbsp;
+        Last sync:
+        <asp:Label ID="lblEtsyLastSync" runat="server" Text="-"></asp:Label>
+    </asp:Panel>
 
     <asp:Panel ID="pnlHero" runat="server" CssClass="hero-box">
         <div>hidden</div>
@@ -557,11 +608,21 @@
                 <h2 class="panel-title">Navigation</h2>
                 <div class="panel-subtitle">Quick actions</div>
 
+                <div class="nav-section-title">Core</div>
                 <div class="nav-wrap">
                     <asp:Button ID="btnDashboardReports" runat="server" Text="Dashboard" CssClass="btn-light-nav" OnClick="toDashboard_click" />
                     <asp:Button ID="btnNavProducts" runat="server" Text="Products" CssClass="btn-light-nav" OnClick="toProducts_click" />
                     <asp:Button ID="btnNavOrders" runat="server" Text="Orders" CssClass="btn-light-nav" OnClick="toOrders_click" />
                     <asp:Button ID="btnNavNewOrder" runat="server" Text="New Order" CssClass="btn-light-nav" OnClick="btnNewOrder_Click" />
+                </div>
+
+                <div class="nav-divider"></div>
+
+                <div class="nav-section-title">Etsy</div>
+                <div class="nav-wrap">
+                    <asp:Button ID="btnNavEtsyInbox" runat="server" Text="Etsy Inbox" CssClass="btn-etsy-nav" OnClick="toEtsyInbox_click" />
+                    <asp:Button ID="btnNavEtsyConnect" runat="server" Text="Connect Etsy" CssClass="btn-etsy-nav" OnClick="toEtsyConnect_click" />
+                    <asp:Button ID="btnNavEtsySync" runat="server" Text="Sync Etsy" CssClass="btn-etsy-nav" OnClick="toEtsySync_click" />
                 </div>
 
                 <div style="height:10px;"></div>
