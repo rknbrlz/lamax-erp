@@ -1065,3 +1065,15 @@
 2026-03-16 21:13:08.535 | After SqlConnection.Open()
 2026-03-16 21:13:08.619 | After ExecuteScalar() | result=9
 2026-03-16 21:13:08.625 | ValidateUser got userId, continuing...
+2026-03-17 14:53:37.631 | CLICK ValidateUser
+2026-03-17 14:53:37.662 | CallValidateUser START | u=aslihan.barlaz
+2026-03-17 14:53:37.707 | Before SqlConnection.Open()
+2026-03-17 14:53:38.266 | After SqlConnection.Open()
+2026-03-17 14:53:38.356 | After ExecuteScalar() | result=9
+2026-03-17 14:53:38.379 | ValidateUser got userId, continuing...
+2026-03-17 19:12:46.270 | CLICK ValidateUser
+2026-03-17 19:12:46.422 | CallValidateUser START | u=aslihan.barlaz
+2026-03-17 19:12:46.524 | Before SqlConnection.Open()
+2026-03-17 19:12:47.176 | After SqlConnection.Open()
+2026-03-17 19:12:47.234 | After ExecuteScalar() | result=9
+2026-03-17 19:12:47.242 | ValidateUser got userId, continuing...

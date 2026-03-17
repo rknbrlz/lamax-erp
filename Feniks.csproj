@@ -182,6 +182,7 @@
     <Content Include="Administrator\StockEntry.aspx" />
     <Content Include="Administrator\StockHistory.aspx" />
     <Content Include="Administrator\StockManagement.aspx" />
+    <Content Include="Administrator\TestTelegram.aspx" />
     <Content Include="Administrator\WebForm2.aspx" />
     <Content Include="Administrator\WebForm3.aspx" />
     <Content Include="Administrator\WebForm4.aspx" />
@@ -477,6 +478,13 @@
     <Compile Include="Administrator\StockHistory.aspx.designer.cs">
       <DependentUpon>StockHistory.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Administrator\TestTelegram.aspx.cs">
+      <DependentUpon>TestTelegram.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\TestTelegram.aspx.designer.cs">
+      <DependentUpon>TestTelegram.aspx</DependentUpon>
+    </Compile>
     <Compile Include="ProductAmazonMainImageHandler.ashx.cs">
       <DependentUpon>ProductAmazonMainImageHandler.ashx</DependentUpon>
     </Compile>
@@ -688,6 +696,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Administrator\Images\" />
+    <Folder Include="App_Code\" />
     <Folder Include="App_Data\" />
     <Folder Include="sounds\" />
     <Folder Include="Uploads\avatars\" />
