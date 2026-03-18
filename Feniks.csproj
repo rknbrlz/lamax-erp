@@ -113,6 +113,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="About.aspx" />
+    <Content Include="Administrator\AmazonOrders.aspx" />
     <Content Include="Administrator\AmazonReportUpload.aspx" />
     <Content Include="Administrator\Dashboard.aspx" />
     <Content Include="Administrator\EtsyOAuthCallback.aspx" />
@@ -216,6 +217,7 @@
     <Content Include="ProductAmazonMainImageHandler.ashx" />
     <Content Include="Administrator\ProductMainImageHandler.ashx" />
     <Content Include="Administrator\EtsySync.ashx" />
+    <Content Include="AmazonOrderSyncHandler.ashx" />
     <None Include="Properties\PublishProfiles\FolderProfile.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - FTP.pubxml" />
     <None Include="Properties\PublishProfiles\Lamax - Web Deploy.pubxml" />
@@ -274,6 +276,13 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Administrator\AmazonOrders.aspx.cs">
+      <DependentUpon>AmazonOrders.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="Administrator\AmazonOrders.aspx.designer.cs">
+      <DependentUpon>AmazonOrders.aspx</DependentUpon>
+    </Compile>
     <Compile Include="Administrator\AmazonReportUpload.aspx.cs">
       <DependentUpon>AmazonReportUpload.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
@@ -485,6 +494,10 @@
     <Compile Include="Administrator\TestTelegram.aspx.designer.cs">
       <DependentUpon>TestTelegram.aspx</DependentUpon>
     </Compile>
+    <Compile Include="AmazonOrderSyncHandler.ashx.cs">
+      <DependentUpon>AmazonOrderSyncHandler.ashx</DependentUpon>
+    </Compile>
+    <Compile Include="AmazonSyncJob.cs" />
     <Compile Include="ProductAmazonMainImageHandler.ashx.cs">
       <DependentUpon>ProductAmazonMainImageHandler.ashx</DependentUpon>
     </Compile>
@@ -655,9 +668,12 @@
     <Compile Include="RoleManage.aspx.designer.cs">
       <DependentUpon>RoleManage.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Services\AmazonOrderSyncService.cs" />
+    <Compile Include="Services\AmazonSpApiClient.cs" />
     <Compile Include="Services\BackgroundRemovalService.cs" />
     <Compile Include="Services\EtsyApiClient.cs" />
     <Compile Include="Services\EtsyOrderSyncService.cs" />
+    <Compile Include="Services\TelegramService.cs" />
     <Compile Include="SignupRequest.aspx.cs">
       <DependentUpon>SignupRequest.aspx</DependentUpon>
       <SubType>ASPXCodeBehind</SubType>
