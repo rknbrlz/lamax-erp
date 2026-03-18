@@ -16,10 +16,10 @@ namespace Feniks
         {
             context.Response.ContentType = "text/plain";
 
-            string key = (context.Request["key"] ?? "").Trim();
-            string expected = (ConfigurationManager.AppSettings["AmazonSyncKey"] ?? "").Trim();
+            string key = (context.Request["key"] ?? string.Empty).Trim();
+            string expected = (ConfigurationManager.AppSettings["AmazonSyncKey"] ?? string.Empty).Trim();
 
-            if (string.IsNullOrWhiteSpace(expected) || key != expected)
+            if (string.IsNullOrWhiteSpace(expected) || !string.Equals(key, expected, StringComparison.Ordinal))
             {
                 context.Response.StatusCode = 403;
                 context.Response.Write("Forbidden");
@@ -38,6 +38,7 @@ namespace Feniks
                     return;
                 }
 
+                context.Response.StatusCode = 200;
                 context.Response.Write(
                     "OK | Orders=" + result.OrderCount +
                     " | NewOrders=" + result.NewOrderCount +
@@ -50,7 +51,9 @@ namespace Feniks
                 {
                     new AmazonOrderSyncService().SaveSyncError(ex.ToString());
                 }
-                catch { }
+                catch
+                {
+                }
 
                 context.Response.StatusCode = 500;
                 context.Response.Write(ex.Message);
