@@ -15,69 +15,113 @@ namespace Feniks.Services
         private readonly AmazonSpApiClient _client = new AmazonSpApiClient();
         private readonly TelegramService _telegram = new TelegramService();
 
-        public void Sync(bool autoPromote = true, bool sendTelegram = true)
+        private readonly string _lockName = "AMAZON_ORDER_SYNC";
+        private readonly int _lockTimeoutMinutes = 30;
+
+        public SyncRunResult SyncInboxOnly(bool sendTelegram = true)
         {
-            DateTime lastSyncUtc = GetLastSyncUtc();
-
-            string nextToken = null;
-
-            while (true)
+            Guid lockToken;
+            if (!TryAcquireLock(out lockToken))
             {
-                JObject ordersRoot = _client.GetOrders(lastSyncUtc, nextToken);
-                JArray orders = ordersRoot["payload"] != null ? ordersRoot["payload"]["Orders"] as JArray : null;
-
-                if (orders == null || orders.Count == 0)
-                    break;
-
-                foreach (JObject order in orders)
+                return new SyncRunResult
                 {
-                    string amazonOrderId = ReadString(order, "AmazonOrderId");
-                    if (string.IsNullOrWhiteSpace(amazonOrderId))
-                        continue;
-
-                    bool isNewOrder = !InboxOrderExists(amazonOrderId);
-
-                    SaveOrder(order);
-                    SyncOrderItems(amazonOrderId);
-
-                    if (autoPromote)
-                    {
-                        try
-                        {
-                            PromoteToLamax(amazonOrderId);
-                        }
-                        catch
-                        {
-                            // promote hatası sync'i komple patlatmasın
-                        }
-                    }
-
-                    if (sendTelegram && isNewOrder)
-                    {
-                        try
-                        {
-                            SendTelegramForOrder(amazonOrderId);
-                        }
-                        catch (Exception ex)
-                        {
-                            SaveSyncLog("ERROR", "Telegram send failed for order " + amazonOrderId + ". " + ex.Message);
-                        }
-                    }
-                }
-
-                nextToken = ordersRoot["payload"] != null && ordersRoot["payload"]["NextToken"] != null
-                    ? ordersRoot["payload"]["NextToken"].ToString()
-                    : null;
-
-                if (string.IsNullOrWhiteSpace(nextToken))
-                    break;
+                    Success = false,
+                    WasSkippedBecauseLocked = true,
+                    Message = "Amazon sync skipped because another sync is already running."
+                };
             }
 
-            SaveSyncStateSuccess();
+            try
+            {
+                DateTime lastSyncUtc = GetLastSyncUtc();
+                int orderCount = 0;
+                int newOrderCount = 0;
+                int itemCount = 0;
+
+                string nextToken = null;
+
+                while (true)
+                {
+                    Heartbeat(lockToken);
+
+                    JObject ordersRoot = _client.GetOrders(lastSyncUtc, nextToken);
+                    JArray orders = ordersRoot["payload"] != null ? ordersRoot["payload"]["Orders"] as JArray : null;
+
+                    if (orders == null || orders.Count == 0)
+                        break;
+
+                    foreach (JObject order in orders)
+                    {
+                        Heartbeat(lockToken);
+
+                        string amazonOrderId = ReadString(order, "AmazonOrderId");
+                        if (string.IsNullOrWhiteSpace(amazonOrderId))
+                            continue;
+
+                        bool isNewOrder = !InboxOrderExists(amazonOrderId);
+
+                        SaveOrder(order);
+                        int currentItemCount = SyncOrderItems(amazonOrderId);
+
+                        orderCount++;
+                        itemCount += currentItemCount;
+
+                        if (isNewOrder)
+                        {
+                            newOrderCount++;
+
+                            if (sendTelegram)
+                            {
+                                try
+                                {
+                                    SendTelegramForOrder(amazonOrderId);
+                                }
+                                catch (Exception ex)
+                                {
+                                    SaveSyncLog("ERROR", "Telegram send failed for order " + amazonOrderId + ". " + ex.Message);
+                                }
+                            }
+                        }
+                    }
+
+                    nextToken = ordersRoot["payload"] != null && ordersRoot["payload"]["NextToken"] != null
+                        ? ordersRoot["payload"]["NextToken"].ToString()
+                        : null;
+
+                    if (string.IsNullOrWhiteSpace(nextToken))
+                        break;
+                }
+
+                SaveSyncStateSuccess();
+                ReleaseLock(lockToken, true, "Orders=" + orderCount + ", NewOrders=" + newOrderCount + ", Items=" + itemCount);
+
+                return new SyncRunResult
+                {
+                    Success = true,
+                    WasSkippedBecauseLocked = false,
+                    OrderCount = orderCount,
+                    NewOrderCount = newOrderCount,
+                    ItemCount = itemCount,
+                    Message = "Amazon inbox sync completed."
+                };
+            }
+            catch (Exception ex)
+            {
+                SaveSyncError(ex.ToString());
+                ReleaseLock(lockToken, false, ex.Message);
+
+                return new SyncRunResult
+                {
+                    Success = false,
+                    WasSkippedBecauseLocked = false,
+                    Message = ex.Message
+                };
+            }
         }
 
-        public void SyncOrderItems(string amazonOrderId)
+        public int SyncOrderItems(string amazonOrderId)
         {
+            int count = 0;
             string nextToken = null;
 
             while (true)
@@ -89,7 +133,10 @@ namespace Feniks.Services
                     break;
 
                 foreach (JObject item in items)
+                {
                     SaveOrderItem(amazonOrderId, item);
+                    count++;
+                }
 
                 nextToken = itemsRoot["payload"] != null && itemsRoot["payload"]["NextToken"] != null
                     ? itemsRoot["payload"]["NextToken"].ToString()
@@ -97,6 +144,117 @@ namespace Feniks.Services
 
                 if (string.IsNullOrWhiteSpace(nextToken))
                     break;
+            }
+
+            return count;
+        }
+
+        public void PromoteToLamax(string amazonOrderId)
+        {
+            using (SqlConnection con = new SqlConnection(_cs))
+            using (SqlCommand cmd = new SqlCommand("dbo.sp_Amazon_PromoteInboxOrderToLamax", con))
+            {
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@AmazonOrderId", amazonOrderId);
+                con.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private bool TryAcquireLock(out Guid lockToken)
+        {
+            lockToken = Guid.NewGuid();
+
+            using (SqlConnection con = new SqlConnection(_cs))
+            using (SqlCommand cmd = new SqlCommand(@"
+DECLARE @NowUtc DATETIME = GETUTCDATE();
+DECLARE @TimeoutUtc DATETIME = DATEADD(MINUTE, -@LockTimeoutMinutes, @NowUtc);
+
+UPDATE dbo.T_AmazonSyncLock
+SET
+    IsRunning = 1,
+    LockToken = @LockToken,
+    StartedAtUtc = @NowUtc,
+    LastHeartbeatUtc = @NowUtc,
+    UpdatedAtUtc = @NowUtc,
+    LastResult = NULL,
+    LastMessage = NULL
+WHERE LockName = @LockName
+  AND
+  (
+      ISNULL(IsRunning, 0) = 0
+      OR LastHeartbeatUtc IS NULL
+      OR LastHeartbeatUtc < @TimeoutUtc
+  );
+
+SELECT @@ROWCOUNT;", con))
+            {
+                cmd.Parameters.AddWithValue("@LockName", _lockName);
+                cmd.Parameters.AddWithValue("@LockToken", lockToken);
+                cmd.Parameters.AddWithValue("@LockTimeoutMinutes", _lockTimeoutMinutes);
+
+                con.Open();
+                int affected = Convert.ToInt32(cmd.ExecuteScalar());
+                return affected > 0;
+            }
+        }
+
+        private void Heartbeat(Guid lockToken)
+        {
+            using (SqlConnection con = new SqlConnection(_cs))
+            using (SqlCommand cmd = new SqlCommand(@"
+UPDATE dbo.T_AmazonSyncLock
+SET
+    LastHeartbeatUtc = GETUTCDATE(),
+    UpdatedAtUtc = GETUTCDATE()
+WHERE LockName = @LockName
+  AND LockToken = @LockToken
+  AND IsRunning = 1;", con))
+            {
+                cmd.Parameters.AddWithValue("@LockName", _lockName);
+                cmd.Parameters.AddWithValue("@LockToken", lockToken);
+                con.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private void ReleaseLock(Guid lockToken, bool success, string message)
+        {
+            using (SqlConnection con = new SqlConnection(_cs))
+            using (SqlCommand cmd = new SqlCommand(@"
+UPDATE dbo.T_AmazonSyncLock
+SET
+    IsRunning = 0,
+    LockToken = NULL,
+    LastFinishedAtUtc = GETUTCDATE(),
+    LastHeartbeatUtc = GETUTCDATE(),
+    UpdatedAtUtc = GETUTCDATE(),
+    LastResult = @LastResult,
+    LastMessage = @LastMessage
+WHERE LockName = @LockName
+  AND LockToken = @LockToken;", con))
+            {
+                cmd.Parameters.AddWithValue("@LockName", _lockName);
+                cmd.Parameters.AddWithValue("@LockToken", lockToken);
+                cmd.Parameters.AddWithValue("@LastResult", success ? "OK" : "ERROR");
+                cmd.Parameters.AddWithValue("@LastMessage", (object)(message ?? "") ?? DBNull.Value);
+
+                con.Open();
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        private bool InboxOrderExists(string amazonOrderId)
+        {
+            using (SqlConnection con = new SqlConnection(_cs))
+            using (SqlCommand cmd = new SqlCommand(@"
+SELECT COUNT(1)
+FROM dbo.T_AmazonOrderInbox
+WHERE AmazonOrderId = @AmazonOrderId;", con))
+            {
+                cmd.Parameters.AddWithValue("@AmazonOrderId", amazonOrderId);
+                con.Open();
+                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
             }
         }
 
@@ -176,32 +334,6 @@ namespace Feniks.Services
             }
         }
 
-        public void PromoteToLamax(string amazonOrderId)
-        {
-            using (SqlConnection con = new SqlConnection(_cs))
-            using (SqlCommand cmd = new SqlCommand("dbo.sp_Amazon_PromoteInboxOrderToLamax", con))
-            {
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@AmazonOrderId", amazonOrderId);
-                con.Open();
-                cmd.ExecuteNonQuery();
-            }
-        }
-
-        private bool InboxOrderExists(string amazonOrderId)
-        {
-            using (SqlConnection con = new SqlConnection(_cs))
-            using (SqlCommand cmd = new SqlCommand(@"
-SELECT COUNT(1)
-FROM dbo.T_AmazonOrderInbox
-WHERE AmazonOrderId = @AmazonOrderId;", con))
-            {
-                cmd.Parameters.AddWithValue("@AmazonOrderId", amazonOrderId);
-                con.Open();
-                return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
-            }
-        }
-
         private void SendTelegramForOrder(string amazonOrderId)
         {
             if (!_telegram.IsConfigured)
@@ -216,7 +348,6 @@ SELECT TOP 1
     O.OrderTotalAmount,
     O.OrderTotalCurrency,
     O.SalesChannel,
-    O.LamaxOrderNumber,
     I.SellerSKU,
     I.Title,
     I.QuantityOrdered
@@ -237,8 +368,7 @@ ORDER BY I.AmazonOrderInboxItemID;", con))
 
                     string orderId = Convert.ToString(dr["AmazonOrderId"]);
                     string orderStatus = Convert.ToString(dr["OrderStatus"]);
-                    string salesChannel = Convert.ToString(dr["SalesChannel"]);
-                    string lamaxOrderNo = dr["LamaxOrderNumber"] == DBNull.Value ? "" : Convert.ToString(dr["LamaxOrderNumber"]);
+                    string salesChannel = dr["SalesChannel"] == DBNull.Value ? "" : Convert.ToString(dr["SalesChannel"]);
                     string sellerSku = dr["SellerSKU"] == DBNull.Value ? "" : Convert.ToString(dr["SellerSKU"]);
                     string title = dr["Title"] == DBNull.Value ? "" : Convert.ToString(dr["Title"]);
                     string currency = dr["OrderTotalCurrency"] == DBNull.Value ? "" : Convert.ToString(dr["OrderTotalCurrency"]);
@@ -256,8 +386,6 @@ ORDER BY I.AmazonOrderInboxItemID;", con))
                     sb.AppendLine("🛒 <b>New Amazon Order</b>");
                     sb.AppendLine("");
                     sb.AppendLine("<b>Order No:</b> " + orderId);
-                    if (!string.IsNullOrWhiteSpace(lamaxOrderNo))
-                        sb.AppendLine("<b>LamaX No:</b> " + lamaxOrderNo);
                     sb.AppendLine("<b>Status:</b> " + orderStatus);
                     sb.AppendLine("<b>Date:</b> " + purchaseDateText);
                     sb.AppendLine("<b>Channel:</b> " + salesChannel);
@@ -331,7 +459,7 @@ BEGIN
 END
 
 INSERT INTO dbo.T_AmazonSyncLog(MarketplaceId, LogType, Message, CreatedAtUtc)
-VALUES(@MarketplaceId, 'INFO', 'Amazon order sync completed.', GETUTCDATE());", con))
+VALUES(@MarketplaceId, 'INFO', 'Amazon inbox sync completed.', GETUTCDATE());", con))
             {
                 cmd.Parameters.AddWithValue("@MarketplaceId", _client.MarketplaceId);
                 con.Open();
@@ -462,5 +590,15 @@ VALUES(@MarketplaceId, @LogType, @Message, GETUTCDATE());", con))
 
             return false;
         }
+    }
+
+    public class SyncRunResult
+    {
+        public bool Success { get; set; }
+        public bool WasSkippedBecauseLocked { get; set; }
+        public int OrderCount { get; set; }
+        public int NewOrderCount { get; set; }
+        public int ItemCount { get; set; }
+        public string Message { get; set; }
     }
 }

@@ -29,9 +29,20 @@ namespace Feniks
             try
             {
                 AmazonOrderSyncService svc = new AmazonOrderSyncService();
-                svc.Sync(true, true);
+                SyncRunResult result = svc.SyncInboxOnly(true);
 
-                context.Response.Write("OK");
+                if (result.WasSkippedBecauseLocked)
+                {
+                    context.Response.StatusCode = 202;
+                    context.Response.Write("SKIPPED_LOCKED");
+                    return;
+                }
+
+                context.Response.Write(
+                    "OK | Orders=" + result.OrderCount +
+                    " | NewOrders=" + result.NewOrderCount +
+                    " | Items=" + result.ItemCount
+                );
             }
             catch (Exception ex)
             {

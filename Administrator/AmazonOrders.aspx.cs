@@ -26,8 +26,17 @@ namespace Feniks.Administrator
             try
             {
                 AmazonOrderSyncService svc = new AmazonOrderSyncService();
-                svc.Sync(false);
-                lblResult.Text = "<span style='color:green;font-weight:700;'>Amazon sync completed.</span>";
+                SyncRunResult result = svc.SyncInboxOnly(true);
+
+                if (result.WasSkippedBecauseLocked)
+                {
+                    lblResult.Text = "<span style='color:#b45309;font-weight:700;'>Another sync is already running. Current request skipped.</span>";
+                }
+                else
+                {
+                    lblResult.Text = "<span style='color:green;font-weight:700;'>Amazon inbox sync completed. Orders="
+                                     + result.OrderCount + ", NewOrders=" + result.NewOrderCount + ", Items=" + result.ItemCount + "</span>";
+                }
             }
             catch (Exception ex)
             {
@@ -80,9 +89,10 @@ SELECT TOP 200
     OrderTotalAmount,
     OrderTotalCurrency,
     ShippingName,
+    ItemCount,
     ImportedToLamax,
     LamaxOrderNumber
-FROM dbo.V_AmazonOrderInbox
+FROM dbo.V_AmazonOrderInbox_ManualPromote
 ORDER BY PurchaseDateUtc DESC, AmazonOrderInboxID DESC;", con))
             using (SqlDataAdapter da = new SqlDataAdapter(cmd))
             {

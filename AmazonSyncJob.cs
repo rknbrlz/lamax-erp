@@ -14,7 +14,7 @@ namespace Feniks.AmazonSyncJob
                 Log("AmazonSyncJob started.");
 
                 AmazonOrderSyncService svc = new AmazonOrderSyncService();
-                svc.Sync(true, true);
+                svc.SyncInboxOnly(true);
 
                 Log("AmazonSyncJob completed successfully.");
                 return 0;

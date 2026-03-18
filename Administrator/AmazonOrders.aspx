@@ -44,6 +44,14 @@
         padding:10px 14px;
         font-weight:700;
     }
+    .btn-green {
+        background:#dcfce7;
+        color:#166534;
+        border:none;
+        border-radius:12px;
+        padding:8px 12px;
+        font-weight:700;
+    }
     .table-wrap { overflow:auto; }
     .grid-table {
         width:100%;
@@ -54,6 +62,7 @@
         padding:10px 12px;
         border-bottom:1px solid #eef2f7;
         text-align:left;
+        vertical-align:middle;
     }
     .grid-table th {
         background:#f8fafc;
@@ -83,10 +92,10 @@
 <div class="page-wrap">
     <div class="card-box">
         <div class="page-title">Amazon Orders</div>
-        <div class="page-subtitle">Amazon inbox sync and promotion to LamaX</div>
+        <div class="page-subtitle">Amazon inbox sync works automatically. Promote to LamaX manually.</div>
 
         <div class="toolbar">
-            <asp:Button ID="btnSync" runat="server" Text="Sync Amazon" CssClass="btn-dark" OnClick="btnSync_Click" />
+            <asp:Button ID="btnSync" runat="server" Text="Sync Amazon Inbox" CssClass="btn-dark" OnClick="btnSync_Click" />
             <asp:Button ID="btnRefresh" runat="server" Text="Refresh" CssClass="btn-soft" OnClick="btnRefresh_Click" />
         </div>
 
@@ -103,6 +112,7 @@
                     <asp:BoundField DataField="OrderTotalAmount" HeaderText="Total" DataFormatString="{0:N2}" />
                     <asp:BoundField DataField="OrderTotalCurrency" HeaderText="Currency" />
                     <asp:BoundField DataField="ShippingName" HeaderText="Customer" />
+                    <asp:BoundField DataField="ItemCount" HeaderText="Items" />
                     <asp:TemplateField HeaderText="Imported">
                         <ItemTemplate>
                             <%# Convert.ToBoolean(Eval("ImportedToLamax")) ? "<span class='status-ok'>YES</span>" : "<span class='status-no'>NO</span>" %>
@@ -113,9 +123,10 @@
                         <ItemTemplate>
                             <asp:Button ID="btnPromote" runat="server"
                                 Text="Promote"
-                                CssClass="btn-soft"
+                                CssClass="btn-green"
                                 CommandName="promote"
-                                CommandArgument='<%# Eval("AmazonOrderId") %>' />
+                                CommandArgument='<%# Eval("AmazonOrderId") %>'
+                                Visible='<%# !Convert.ToBoolean(Eval("ImportedToLamax")) %>' />
                         </ItemTemplate>
                     </asp:TemplateField>
                 </Columns>
